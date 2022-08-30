@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 let GAME = {
 	WHITE: 0n,
 	BLACK: 0n,
@@ -13,14 +16,8 @@ const Q2_MASK_INV = BigInt('0b' + Q2_MASK.toString(2).padStart(36, '0').split(''
 const Q3_MASK_INV = BigInt('0b' + Q3_MASK.toString(2).padStart(36, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 const Q4_MASK_INV = BigInt('0b' + Q4_MASK.toString(2).padStart(36, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 
-const Q1_RIGHT_ROTATION_LOOKUP = new Map();
-const Q2_RIGHT_ROTATION_LOOKUP = new Map();
-const Q3_RIGHT_ROTATION_LOOKUP = new Map();
-const Q4_RIGHT_ROTATION_LOOKUP = new Map();
-const Q1_LEFT_ROTATION_LOOKUP = new Map();
-const Q2_LEFT_ROTATION_LOOKUP = new Map();
-const Q3_LEFT_ROTATION_LOOKUP = new Map();
-const Q4_LEFT_ROTATION_LOOKUP = new Map();
+const ROTATION_LOOKUP_LEFT = new Map();
+const ROTATION_LOOKUP_RIGHT = new Map();
 
 const OLD_PIECES = { WHITE: 1, BLACK: 0, EMPTY: -1 };
 
@@ -140,36 +137,27 @@ function RotateGame(gameObj, quadrant, direction) {
 	if (quadrant === 0) {
 		maskToUse = Q1_MASK;
 		invMaskToUse = Q1_MASK_INV;
-
-		if (direction === true) lookupTableToUse = Q1_RIGHT_ROTATION_LOOKUP;
-		else lookupTableToUse = Q1_LEFT_ROTATION_LOOKUP;
 	} else if (quadrant === 1) {
 		maskToUse = Q2_MASK;
 		invMaskToUse = Q2_MASK_INV;
-
-		if (direction === true) lookupTableToUse = Q2_RIGHT_ROTATION_LOOKUP;
-		else lookupTableToUse = Q2_LEFT_ROTATION_LOOKUP;
 	} else if (quadrant === 2) {
 		maskToUse = Q3_MASK;
 		invMaskToUse = Q3_MASK_INV;
-
-		if (direction === true) lookupTableToUse = Q3_RIGHT_ROTATION_LOOKUP;
-		else lookupTableToUse = Q3_LEFT_ROTATION_LOOKUP;
 	} else if (quadrant === 3) {
 		maskToUse = Q4_MASK;
 		invMaskToUse = Q4_MASK_INV;
-
-		if (direction === true) lookupTableToUse = Q4_RIGHT_ROTATION_LOOKUP;
-		else lookupTableToUse = Q4_LEFT_ROTATION_LOOKUP;
 	}
 
+	if (direction === true) lookupTableToUse = ROTATION_LOOKUP_RIGHT;
+	else lookupTableToUse = ROTATION_LOOKUP_LEFT;
+
 	// (1234567n & 8434456n) | (1234567n & 9878764n);
-	(1234567 & 8434456) | (1234567 & 9878764);
+	// (1234567 & 8434456) | (1234567 & 9878764);
 
 	// (gameObj.WHITE & invMaskToUse) | (maskToUse & gameObj.WHITE);
 	// (gameObj.BLACK & invMaskToUse) | (maskToUse & gameObj.BLACK);
-	// gameObj.WHITE = (gameObj.WHITE & invMaskToUse) | lookupTableToUse.get(maskToUse & gameObj.WHITE);
-	// gameObj.BLACK = (gameObj.BLACK & invMaskToUse) | lookupTableToUse.get(maskToUse & gameObj.BLACK);
+	gameObj.WHITE = (gameObj.WHITE & invMaskToUse) | lookupTableToUse.get(maskToUse & gameObj.WHITE);
+	gameObj.BLACK = (gameObj.BLACK & invMaskToUse) | lookupTableToUse.get(maskToUse & gameObj.BLACK);
 }
 
 function ResetGame() {
@@ -199,9 +187,8 @@ for (let a = 0n; a <= 7n; a += 1n) {
 			let leftRotationValue = _GetGameObjFromGameArrayStr(gameArrRepresentation.toString()).WHITE;
 			_RotateGameArrayBoard(gameArrRepresentation, 3, true);
 
-			Q4_RIGHT_ROTATION_LOOKUP.set(valueQ4, rightRotationValue);
-			Q4_LEFT_ROTATION_LOOKUP.set(valueQ4, leftRotationValue);
-
+			ROTATION_LOOKUP_RIGHT.set(valueQ4, rightRotationValue);
+			ROTATION_LOOKUP_LEFT.set(valueQ4, leftRotationValue);
 
 
 			GAME.WHITE = valueQ3;
@@ -213,8 +200,8 @@ for (let a = 0n; a <= 7n; a += 1n) {
 			leftRotationValue = _GetGameObjFromGameArrayStr(gameArrRepresentation.toString()).WHITE;
 			_RotateGameArrayBoard(gameArrRepresentation, 2, true);
 
-			Q3_RIGHT_ROTATION_LOOKUP.set(valueQ3, rightRotationValue);
-			Q3_LEFT_ROTATION_LOOKUP.set(valueQ3, leftRotationValue);
+			ROTATION_LOOKUP_RIGHT.set(valueQ3, rightRotationValue);
+			ROTATION_LOOKUP_LEFT.set(valueQ3, leftRotationValue);
 
 
 			GAME.WHITE = valueQ2;
@@ -226,8 +213,8 @@ for (let a = 0n; a <= 7n; a += 1n) {
 			leftRotationValue = _GetGameObjFromGameArrayStr(gameArrRepresentation.toString()).WHITE;
 			_RotateGameArrayBoard(gameArrRepresentation, 1, true);
 
-			Q2_RIGHT_ROTATION_LOOKUP.set(valueQ2, rightRotationValue);
-			Q2_LEFT_ROTATION_LOOKUP.set(valueQ2, leftRotationValue);
+			ROTATION_LOOKUP_RIGHT.set(valueQ2, rightRotationValue);
+			ROTATION_LOOKUP_LEFT.set(valueQ2, leftRotationValue);
 
 
 			GAME.WHITE = valueQ1;
@@ -239,12 +226,25 @@ for (let a = 0n; a <= 7n; a += 1n) {
 			leftRotationValue = _GetGameObjFromGameArrayStr(gameArrRepresentation.toString()).WHITE;
 			_RotateGameArrayBoard(gameArrRepresentation, 0, true);
 
-			Q1_RIGHT_ROTATION_LOOKUP.set(valueQ1, rightRotationValue);
-			Q1_LEFT_ROTATION_LOOKUP.set(valueQ1, leftRotationValue);
+			ROTATION_LOOKUP_RIGHT.set(valueQ1, rightRotationValue);
+			ROTATION_LOOKUP_LEFT.set(valueQ1, leftRotationValue);
 		}
 	}
 }
 ResetGame();
+
+let outputStrLeft = [];
+let outputStrRight = [];
+
+ROTATION_LOOKUP_RIGHT.forEach((value, key) => {
+	outputStrRight.push(key + ',' + value);
+});
+ROTATION_LOOKUP_LEFT.forEach((value, key) => {
+	outputStrLeft.push(key + ',' + value);
+});
+
+fs.writeFileSync(path.join(__dirname, '../rust/RotationLookupRight.txt'), outputStrRight.join('\n'));
+fs.writeFileSync(path.join(__dirname, '../rust/RotationLookupLeft.txt'), outputStrLeft.join('\n'));
 
 // ***** TESTS ***** function _GetGameObjFromGameArrayStr
 GAME = _GetGameObjFromGameArrayStr('-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1');
@@ -275,6 +275,7 @@ for (let i = 0; i < 10000000; ++i) {
 time = Date.now() - time;
 
 console.log('Time (ms):', time);
+
 // RotateGame(GAME, 0, false);
 // RotateGame(GAME, 0, false);
 // RotateGame(GAME, 0, false);

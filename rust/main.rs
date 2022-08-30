@@ -1,11 +1,28 @@
 #![allow(non_snake_case)]
 
-// use std::time::{SystemTime, UNIX_EPOCH};
+use std::collections::HashMap;
+use std::io::BufReader; 
+use std::io::BufRead; 
+use std::io; 
+use std::fs; 
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // const INDEX_MAP: [u8; 36] = [0,1,2,8,14,13,12,6,7, 3,4,5,11,17,16,15,9,10, 18,19,20,26,32,31,30,24,25, 21,22,23,29,35,34,33,27,28];
 
-// const PIECES_BLACK: i8 = 0;
-// const PIECES_WHITE: i8 += 1;
+const PIECES_EMPTY: i8 = -1;
+const PIECES_BLACK: i8 = 0;
+const PIECES_WHITE: i8 = 1;
+
+const Q4_MASK: u64 = (7 << 12) | (7 << 6) | 7;
+const Q3_MASK: u64 = Q4_MASK << 3;
+const Q2_MASK: u64 = Q4_MASK << 18;
+const Q1_MASK: u64 = Q4_MASK << 21;
+
+const Q1_MASK_INV: u64 = !Q1_MASK;
+const Q2_MASK_INV: u64 = !Q2_MASK;
+const Q3_MASK_INV: u64 = !Q3_MASK;
+const Q4_MASK_INV: u64 = !Q4_MASK;
 
 // const PIECES_BLACK_INT_VALUE: u128 = 1;
 // const PIECES_WHITE_INT_VALUE: u128 = 2;
@@ -111,7 +128,7 @@ struct GameBoard {
 }
 
 fn PrintGameObj(gameObj: &GameBoard) {
-    println!("Game Board: {{ WHITE: {}, BLACK: {}, REMAINING: {} }}", gameObj.white, gameObj.black, gameObj.remaining);
+    println!("\nGame Board: {{ WHITE: {}, BLACK: {}, REMAINING: {} }}", gameObj.white, gameObj.black, gameObj.remaining);
 }
 
 fn PrintGameBoard(gameObj: &GameBoard) {
@@ -163,15 +180,172 @@ fn PrintGameBoard(gameObj: &GameBoard) {
     println!("{}", outputStringToPrint);
 }
 
+fn GameObjFromGameStr(gameObj: &mut GameBoard, gameStr: &String) {
+    gameObj.white = 0;
+    gameObj.black = 0;
+
+    for currentChar in gameStr.split(',') {
+        let charConvertedToInt = currentChar.parse::<i8>().unwrap();
+
+        gameObj.white = gameObj.white << 1;
+        gameObj.black = gameObj.black << 1;
+
+        if charConvertedToInt == PIECES_WHITE {
+            gameObj.white += 1;
+        } else if charConvertedToInt == PIECES_BLACK {
+            gameObj.black += 1;
+        } else {
+            gameObj.remaining += 1;
+        }
+    }
+}
+
+fn GetGameStrFromGameObj(gameObj: &GameBoard, gameStr: &mut String) {
+    gameStr.clear();
+    // gameStr.push('a');
+    let mut game_board: [i8; 36] = [-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1];
+
+    let mut white: u64 = gameObj.white;
+    let mut black: u64 = gameObj.black;
+
+    // Read the board bit by bit.
+    // Since we start with LSB, we are reading it from the Bottom Left to Top Right. Resulting string will need to be reversed.
+    for index in 0..36 {
+        if white & 1 == 1 {
+            game_board[index as usize] = PIECES_WHITE;
+        } else if black & 1 == 1 {
+            game_board[index as usize] = PIECES_BLACK;
+        } else {
+            game_board[index as usize] = PIECES_EMPTY;
+        }
+
+        white = white >> 1;
+        black = black >> 1;
+    }
+
+    gameStr.push_str(&game_board[35].to_string());
+    for index in 1..36 {
+        gameStr.push(',');
+        gameStr.push_str(&game_board[(35-index) as usize].to_string());
+    }
+}
+
+// File to Vector
+// Source: https://www.quora.com/How-do-I-use-RUST-to-read-a-file-line-by-line-into-an-array?share=1
+fn file_to_vec(filename: String) -> io::Result<Vec<String>> { 
+    let file_in = fs::File::open(filename)?; 
+    let file_reader = BufReader::new(file_in); 
+    Ok(file_reader.lines().filter_map(io::Result::ok).collect()) 
+} 
+
+fn LoadLookupTables(ROTATION_LOOKUP_RIGHT: &mut HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &mut HashMap<u64, u64>) {
+    let rightRotationLookupTableLines = file_to_vec(String::from("RotationLookupRight.txt")).unwrap();
+    let leftRotationLookupTableLines = file_to_vec(String::from("RotationLookupLeft.txt")).unwrap();
+
+    for line in rightRotationLookupTableLines {
+        let keyValueStr: Vec<&str> = line.split(',').collect();
+        let key: u64 = keyValueStr[0].parse::<u64>().unwrap();
+        let value: u64 = keyValueStr[1].parse::<u64>().unwrap();
+
+        ROTATION_LOOKUP_RIGHT.insert(key, value);
+    }
+
+    for line in leftRotationLookupTableLines {
+        let keyValueStr: Vec<&str> = line.split(',').collect();
+        let key: u64 = keyValueStr[0].parse::<u64>().unwrap();
+        let value: u64 = keyValueStr[1].parse::<u64>().unwrap();
+
+        ROTATION_LOOKUP_LEFT.insert(key, value);
+    }
+}
+
+fn RotateGame(ROTATION_LOOKUP_RIGHT: &HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &HashMap<u64, u64>, gameObj: &mut GameBoard, quadrant: u32, direction: bool) {
+    let mut maskToUse: u64 = 0;
+    let mut invMaskToUse: u64 = 0;
+
+    if quadrant == 0 {
+        maskToUse = Q1_MASK;
+        invMaskToUse = Q1_MASK_INV;
+    } else if quadrant == 1 {
+        maskToUse = Q2_MASK;
+        invMaskToUse = Q2_MASK_INV;
+    } else if quadrant == 2 {
+        maskToUse = Q3_MASK;
+        invMaskToUse = Q3_MASK_INV;
+    } else if quadrant == 3 {
+        maskToUse = Q4_MASK;
+        invMaskToUse = Q4_MASK_INV;
+    }
+
+    if direction == true {
+        gameObj.white = (gameObj.white & invMaskToUse) | (maskToUse & gameObj.white);
+        gameObj.black = (gameObj.black & invMaskToUse) | (maskToUse & gameObj.black);
+        // gameObj.white = (gameObj.white & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.white)).unwrap();
+        // gameObj.black = (gameObj.black & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.black)).unwrap();
+    } else {
+        gameObj.white = (gameObj.white & invMaskToUse) | ROTATION_LOOKUP_LEFT.get(&(maskToUse & gameObj.white)).unwrap();
+        gameObj.black = (gameObj.black & invMaskToUse) | ROTATION_LOOKUP_LEFT.get(&(maskToUse & gameObj.black)).unwrap();
+    }
+}
+
 fn main() {
     println!("");
 
-    let game = GameBoard { white: 5, black: 2, remaining: 33 };
+    let mut ROTATION_LOOKUP_RIGHT: HashMap<u64, u64> = HashMap::with_capacity(2045);
+    let mut ROTATION_LOOKUP_LEFT: HashMap<u64, u64> = HashMap::with_capacity(2045);
+
+    LoadLookupTables(&mut ROTATION_LOOKUP_RIGHT, &mut ROTATION_LOOKUP_LEFT);
+
+    // let mut game1 = GameBoard { white: 5, black: 2, remaining: 33 };
     // let game = GameBoard { white: 42983228421, black: 5637144744, remaining: 24 };
     // let game = GameBoard { white: 62338457349, black: 6381019386, remaining: 0 };
 
-    PrintGameObj(&game);
-    PrintGameBoard(&game);
+    // PrintGameObj(&game1);
+    // PrintGameBoard(&game1);
+
+    let mut game2 = GameBoard { white: 0, black: 0, remaining: 0 };
+
+    let mut game2str = String::from("-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1");
+    // let mut game2str = String::from("1,-1,1,0,-1,0,-1,0,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,0,-1,0,-1,0,1,-1,1");
+    // let mut game2str = String::from("1,1,1,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,1");
+    // let mut game2str = String::from("-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1");
+
+    GameObjFromGameStr(&mut game2, &game2str);
+    GetGameStrFromGameObj(&game2, &mut game2str);
+
+    // PrintGameBoard(&game2);
+
+    // RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, 0, false);
+    // RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, 1, false);
+    // RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, 2, false);
+    // RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, 3, false);
+
+    // game2.white = game2.white & (Q4_MASK_INV);
+    // game2.black = game2.black & (Q4_MASK_INV);
+
+    PrintGameObj(&game2);
+    PrintGameBoard(&game2);
+
+    println!("{:?}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis());
+
+    let mut timer = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+
+    let mut i: u32 = 0;
+    let mut complete = false;
+    let total: u32 = 100000000;
+
+    while !complete {
+        RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, i%4, true);
+
+        i += 1;
+        if i >= total {
+            complete = true;
+        }
+    }
+
+    timer = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() - timer;
+
+    println!("Time Taken: {timer}");
 
     println!("");
 }

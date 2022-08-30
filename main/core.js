@@ -13,15 +13,6 @@ const Q2_MASK_INV = BigInt('0b' + Q2_MASK.toString(2).padStart(36, '0').split(''
 const Q3_MASK_INV = BigInt('0b' + Q3_MASK.toString(2).padStart(36, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 const Q4_MASK_INV = BigInt('0b' + Q4_MASK.toString(2).padStart(36, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 
-
-console.log();
-console.log(Q1_MASK);
-console.log(Q1_MASK | Q2_MASK);
-console.log(parseInt(Q1_MASK.toString()));
-console.log(parseInt(Q2_MASK.toString()));
-console.log(parseInt(Q1_MASK.toString()) | parseInt(Q2_MASK.toString()));
-
-
 const Q1_RIGHT_ROTATION_LOOKUP = new Map();
 const Q2_RIGHT_ROTATION_LOOKUP = new Map();
 const Q3_RIGHT_ROTATION_LOOKUP = new Map();
@@ -36,7 +27,7 @@ const OLD_PIECES = { WHITE: 1, BLACK: 0, EMPTY: -1 };
 // GAME = _GetGameObjFromGameArrayStr('1,-1,1,0,-1,0,-1,0,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,0,-1,0,-1,0,1,-1,1');
 // GAME = _GetGameObjFromGameArrayStr('-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1,-1,-1,-1,0,1,0,-1,-1,-1,1,0,1');
 
-// console.clear();
+console.clear();
 console.log(`\nStarting Pentago AI v2: ${(new Date()).toLocaleString()}\n`);
 
 function DrawGameFromInts(gameObj) {
@@ -256,9 +247,9 @@ for (let a = 0n; a <= 7n; a += 1n) {
 ResetGame();
 
 // ***** TESTS ***** function _GetGameObjFromGameArrayStr
-// GAME = _GetGameObjFromGameArrayStr('-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1');
+GAME = _GetGameObjFromGameArrayStr('-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1');
 // GAME = _GetGameObjFromGameArrayStr('1,-1,1,0,-1,0,-1,0,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,0,-1,0,-1,0,1,-1,1');
-GAME = _GetGameObjFromGameArrayStr('1,1,1,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,1');
+// GAME = _GetGameObjFromGameArrayStr('1,1,1,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,1');
 // GAME = _GetGameObjFromGameArrayStr('-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1');
 // ***** END TESTS *****
 
@@ -273,7 +264,7 @@ GAME = _GetGameObjFromGameArrayStr('1,1,1,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,0,1,
 // console.log(_GetGameArrayFromGameObj(_GetGameObjFromGameArrayStr(testGame4)).toString() === testGame4);
 // ***** END TESTS *****
 
-// console.log(GAME);
+console.log(GAME);
 DrawGameFromInts(GAME);
 let time = Date.now();
 
@@ -283,7 +274,7 @@ for (let i = 0; i < 10000000; ++i) {
 
 time = Date.now() - time;
 
-console.log(time);
+console.log('Time (ms):', time);
 // RotateGame(GAME, 0, false);
 // RotateGame(GAME, 0, false);
 // RotateGame(GAME, 0, false);

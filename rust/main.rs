@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
-use std::collections::HashMap;
+// use rustc_hash::FxHashMap;
+use fnv::FnvHashMap;
+
 use std::io::BufReader; 
 use std::io::BufRead; 
 use std::io; 
@@ -238,7 +240,7 @@ fn file_to_vec(filename: String) -> io::Result<Vec<String>> {
     Ok(file_reader.lines().filter_map(io::Result::ok).collect()) 
 } 
 
-fn LoadLookupTables(ROTATION_LOOKUP_RIGHT: &mut HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &mut HashMap<u64, u64>) {
+fn LoadLookupTables(ROTATION_LOOKUP_RIGHT: &mut FnvHashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &mut FnvHashMap<u64, u64>) {
     let rightRotationLookupTableLines = file_to_vec(String::from("RotationLookupRight.txt")).unwrap();
     let leftRotationLookupTableLines = file_to_vec(String::from("RotationLookupLeft.txt")).unwrap();
 
@@ -259,7 +261,7 @@ fn LoadLookupTables(ROTATION_LOOKUP_RIGHT: &mut HashMap<u64, u64>, ROTATION_LOOK
     }
 }
 
-fn RotateGame(ROTATION_LOOKUP_RIGHT: &HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &HashMap<u64, u64>, gameObj: &mut GameBoard, quadrant: u32, direction: bool) {
+fn RotateGame(ROTATION_LOOKUP_RIGHT: &FnvHashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &FnvHashMap<u64, u64>, gameObj: &mut GameBoard, quadrant: u32, direction: bool) {
     let mut maskToUse: u64 = 0;
     let mut invMaskToUse: u64 = 0;
 
@@ -278,10 +280,8 @@ fn RotateGame(ROTATION_LOOKUP_RIGHT: &HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &
     }
 
     if direction == true {
-        gameObj.white = (gameObj.white & invMaskToUse) | (maskToUse & gameObj.white);
-        gameObj.black = (gameObj.black & invMaskToUse) | (maskToUse & gameObj.black);
-        // gameObj.white = (gameObj.white & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.white)).unwrap();
-        // gameObj.black = (gameObj.black & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.black)).unwrap();
+        gameObj.white = (gameObj.white & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.white)).unwrap();
+        gameObj.black = (gameObj.black & invMaskToUse) | ROTATION_LOOKUP_RIGHT.get(&(maskToUse & gameObj.black)).unwrap();
     } else {
         gameObj.white = (gameObj.white & invMaskToUse) | ROTATION_LOOKUP_LEFT.get(&(maskToUse & gameObj.white)).unwrap();
         gameObj.black = (gameObj.black & invMaskToUse) | ROTATION_LOOKUP_LEFT.get(&(maskToUse & gameObj.black)).unwrap();
@@ -291,8 +291,8 @@ fn RotateGame(ROTATION_LOOKUP_RIGHT: &HashMap<u64, u64>, ROTATION_LOOKUP_LEFT: &
 fn main() {
     println!("");
 
-    let mut ROTATION_LOOKUP_RIGHT: HashMap<u64, u64> = HashMap::with_capacity(2045);
-    let mut ROTATION_LOOKUP_LEFT: HashMap<u64, u64> = HashMap::with_capacity(2045);
+    let mut ROTATION_LOOKUP_RIGHT: FnvHashMap<u64, u64> = FnvHashMap::default();
+    let mut ROTATION_LOOKUP_LEFT: FnvHashMap<u64, u64> = FnvHashMap::default();
 
     LoadLookupTables(&mut ROTATION_LOOKUP_RIGHT, &mut ROTATION_LOOKUP_LEFT);
 
@@ -305,10 +305,11 @@ fn main() {
 
     let mut game2 = GameBoard { white: 0, black: 0, remaining: 0 };
 
-    let mut game2str = String::from("-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1");
+    // let mut game2str = String::from("-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,0,1");
     // let mut game2str = String::from("1,-1,1,0,-1,0,-1,0,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,0,-1,0,-1,0,1,-1,1");
     // let mut game2str = String::from("1,1,1,0,1,0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,1,0,1");
     // let mut game2str = String::from("-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1");
+    let mut game2str = String::from("-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1");
 
     GameObjFromGameStr(&mut game2, &game2str);
     GetGameStrFromGameObj(&game2, &mut game2str);
@@ -336,6 +337,7 @@ fn main() {
 
     while !complete {
         RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, i%4, true);
+        // RotateGame(&ROTATION_LOOKUP_RIGHT, &ROTATION_LOOKUP_LEFT, &mut game2, i%4, false);
 
         i += 1;
         if i >= total {

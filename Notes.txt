@@ -1,0 +1,39 @@
+
+TODOs:
+ - Make a set of example games that will be used as a benchmark to test different AIs. This should include many different situations.
+
+
+Optimisations:
+ - If less than 10 moves have been made, a win is not possible. So win checks can be ignored.
+
+
+Q: How will the board be represented in the Game?
+A: As an Object that contains three Integer. One for black board, one for white board, and one for number of moves made so far 
+
+
+Q: How to find empty squares with Integer representation?
+A: First step is to OR the two boards together. Then for all 36 positions perform an AND operation with the int that represents each square. If the AND result is 0, the square is empty.
+
+
+
+Q: How to rotate the board with Integer representation?
+A: For each of the 4 quadrants a lookup table can be pre-calculated for what the new integer will be after the rotation. A quadrant is only 9 bits, so only 512 possible values. This table can be used for both black and white. More specifically there will be a integer for each quadrant that can be ANDed with the game board to extract only the bits in the quadrant. The lookup table should be of size 4096 = (512 values per quadrant * 4 quadrants * 2 directions).
+
+***************OLD METHOD***************
+A: Using the new bit representation so that rotates are shift operations.
+
+	Quadrant Example:
+
+		a b c		g h a
+		h i d		f i b
+		g f e		e d c
+
+	Bit Representation (before rotate):	abcd efgh i
+	Bit Representation (after rotate):	ghab cdef i
+***************OLD METHOD***************
+
+
+
+
+Q: How to remove quadrant rotation symmetry and full-board rotation symmetry when generating moves?
+A: When generating moves, 

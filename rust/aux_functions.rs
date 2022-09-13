@@ -9,47 +9,6 @@ const PIECES_WHITE: i8 = 1;
 const PIECES_BLACK_INT_VALUE: u128 = 1;
 const PIECES_WHITE_INT_VALUE: u128 = 2;
 
-// Used to extract only the quadrant being rotated
-const QUADRANT_MASKS: [u128; 4] = [
-    4722348468471135731712, // Q1: 0b111111111111111111000000000000000000000000000000000000000000000000000000
-    18014329790005248,      // Q2: 0b000000000000000000111111111111111111000000000000000000000000000000000000
-    68719214592,            // Q3: 0b000000000000000000000000000000000000111111111111111111000000000000000000
-    262143                  // Q4: 0b000000000000000000000000000000000000000000000000000000111111111111111111
-];
-
-// Used to extract everything except the quadrant being rotated
-const QUADRANT_MASKS_INV: [u128; 4] = [
-    18014398509481983,      // Q1: 0b000000000000000000111111111111111111111111111111111111111111111111111111
-    4722348468539855208447, // Q2: 0b111111111111111111000000000000000000111111111111111111111111111111111111
-    4722366482800925999103, // Q3: 0b111111111111111111111111111111111111000000000000000000111111111111111111
-    4722366482869644951552  // Q4: 0b111111111111111111111111111111111111111111111111111111000000000000000000
-];
-
-const QUADRANT_ROTATION_BIT_SHIFT_AMOUNT: [u128; 4] = [54, 36, 18, 0];
-
-pub fn RotateGame(game: u128, quadrant: usize, direction: bool) -> u128 {
-    // Extract the bits for the target quadrant only
-    let mut quadrant_int: u128 = (QUADRANT_MASKS[quadrant] & game) >> QUADRANT_ROTATION_BIT_SHIFT_AMOUNT[quadrant];
-    // Save the center value since the rotation won't affect it (but the shift operations will)
-    let center_value: u128 = quadrant_int & 3;
-    // Remove the center value
-    quadrant_int = quadrant_int >> 2;
-
-    // Perform the rotation and add the center value back in
-    if direction {
-        quadrant_int = ((((quadrant_int >> 4) | (quadrant_int << 12)) & 65535) << 2) | center_value;
-    } else {
-        quadrant_int = ((((quadrant_int << 4) | (quadrant_int >> 12)) & 65535) << 2) | center_value;
-    }
-
-    // Move the bits back to line up with were they were taken from
-    quadrant_int = quadrant_int << QUADRANT_ROTATION_BIT_SHIFT_AMOUNT[quadrant];
-    // Put the new quadrant bits into the game board
-	quadrant_int = (game & QUADRANT_MASKS_INV[quadrant]) | quadrant_int;
-
-    return quadrant_int;
-}
-
 pub fn ConvertGameArrayToGameInt(game_board: &[i8; 36]) -> u128 {
     let mut game_as_int: u128 = 0;
 
@@ -137,7 +96,7 @@ pub fn CheckWhiteWin(game: u128) -> bool {
     let mut i = 0;
 
     while i < WHITE_WINNING_INTS.len() {
-        if game & WHITE_WINNING_INTS[i as usize] == WHITE_WINNING_INTS[i as usize] {
+        if (game & WHITE_WINNING_INTS[i as usize]) == WHITE_WINNING_INTS[i as usize] {
             return true;
         }
 
@@ -151,7 +110,7 @@ pub fn CheckBlackWin(game: u128) -> bool {
     let mut i = 0;
 
     while i < BLACK_WINNINGS_INTS.len() {
-        if game & BLACK_WINNINGS_INTS[i as usize] == BLACK_WINNINGS_INTS[i as usize] {
+        if (game & BLACK_WINNINGS_INTS[i as usize]) == BLACK_WINNINGS_INTS[i as usize] {
             return true;
         }
 

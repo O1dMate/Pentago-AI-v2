@@ -15,9 +15,6 @@ const Q2_MASK_INV = BigInt('0b' + Q2_MASK.toString(2).padStart(72, '0').split(''
 const Q3_MASK_INV = BigInt('0b' + Q3_MASK.toString(2).padStart(72, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 const Q4_MASK_INV = BigInt('0b' + Q4_MASK.toString(2).padStart(72, '0').split('').map(x => x === '0' ? '1' : '0').join(''));
 
-const ROTATION_LOOKUP_LEFT = new Map();
-const ROTATION_LOOKUP_RIGHT = new Map();
-
 const ARRAY_REPRESENTATION_PIECES = { EMPTY: -1, BLACK: 0, WHITE: 1 };
 
 const PIECE_REPRESENTATIONS = {
@@ -217,16 +214,22 @@ _GetGameObjFromGameArrayStr(GAME, '1,-1,1,0,-1,0,-1,0,-1,-1,1,-1,-1,-1,-1,-1,-1,
 console.log(GAME);
 DrawGameFromInts(GAME);
 
-let iters = 1000000;
+let iters = 10_000_000;
 let i = 0;
 
 let timer = Date.now();
 
+let GAME_ARR = [1, -1, 1, 0, -1, 0, -1, 0, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, 0, -1, 0, -1, 0, 1, -1, 1];
+
 while (i < iters) {
-	RotateGame(GAME, 0, true);
-	RotateGame(GAME, 1, true);
-	RotateGame(GAME, 2, true);
-	RotateGame(GAME, 3, true);
+	// RotateGame(GAME, 0, true);
+	// RotateGame(GAME, 1, true);
+	// RotateGame(GAME, 2, true);
+	// RotateGame(GAME, 3, true);
+	_RotateGameArrayBoard(GAME_ARR, 0, true);
+	_RotateGameArrayBoard(GAME_ARR, 1, true);
+	_RotateGameArrayBoard(GAME_ARR, 2, true);
+	_RotateGameArrayBoard(GAME_ARR, 3, true);
 	i++;
 }
 

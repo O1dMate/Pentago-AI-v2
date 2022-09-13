@@ -1,6 +1,8 @@
 const standardAi = require('./ai-1-normal');
 const alphaBetaAi = require('./ai-2-alpha-beta');
 const depthOneResultsAi = require('./ai-3-depth-one-results');
+const moveOrderingBestRotationAi = require('./ai-4-move-ordering-best-rotation');
+const fullScoreMovesAi = require('./ai-5-move-ordering-full-score-moves');
 
 // const standardAi = require('./AI_Standard');
 // const alphaBetaOnlyAi = require('./AI_Standard_Alpha_Beta');
@@ -35,12 +37,25 @@ function StartConfiguration() {
 
 	// WHITE Win (depth 3) as White
 	// GamePieces = '1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,2,2,3,1,1,1,2,3,2,1,1,1,1,3,2,1,1,1,1,1,3'.split(',').map(x => parseInt(x));
-
+	
 	// Unsure () as Black
 	// GamePieces = '1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,2,2,3,1,1,1,2,3,2,1,1,1,1,3,2,1,1,1,1,1,3'.split(',').map(x => parseInt(x));
-
+	
 	// GamePieces = '1,1,1,1,3,2,2,3,3,2,3,3,1,1,2,2,2,1,2,3,3,2,3,1,3,1,2,3,2,1,1,2,1,3,1,1'.split(',').map(x => parseInt(x));
-	GamePieces = '1,1,3,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,2,1,1,3,3,2,2,1,1,1,1,1,2,3,1,1,1,1'.split(',').map(x => parseInt(x));
+	// GamePieces = '1,1,3,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,2,1,1,3,3,2,2,1,1,1,1,1,2,3,1,1,1,1'.split(',').map(x => parseInt(x));
+	
+	// Simple Test Positions as White
+	// GamePieces = '1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1'.split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,3,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,3,1,1,3,2,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1".split(',').map(x => parseInt(x));
+	
+	// WHITE Win (depth 5) as White
+	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2".split(',').map(x => parseInt(x));
+
+	GamePieces = "2,3,3,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "3,1,1,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2".split(',').map(x => parseInt(x));
+	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,3,1,1,1,1,1,1,2,1,1,1,1,1,2".split(',').map(x => parseInt(x));
+	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,2,2,3,1,1,1,1,2,2,1,1,1,1,1,2,1,1,1,1,1,3,3,1".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -55,9 +70,13 @@ function main() {
 	console.log('');
 	
 	
-	depthOneResultsAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	fullScoreMovesAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	console.log('');
-	alphaBetaAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	moveOrderingBestRotationAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('');
+	// depthOneResultsAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('');
+	// alphaBetaAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('');
 	// standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 

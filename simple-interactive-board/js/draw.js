@@ -1,4 +1,4 @@
-let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
+let PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
 let CURRENT_TURN = PIECES.WHITE;
 
 let currentlyHighlightedPieceIndex = -1;

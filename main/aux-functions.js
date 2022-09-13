@@ -35,12 +35,6 @@ const QUAD_SCORE = 1_000;
 const QUAD_OPEN_END_SCORE = 1_000_000;
 
 const BLOCKED_TRIPLE_SCORE = 25;
-const SCORE_FOR_CURRENT_TURN = 2;
-
-// const SCORE_LOOKUP_TABLE_5_WHITE = new Map();
-// const SCORE_LOOKUP_TABLE_5_BLACK = new Map();
-// const SCORE_LOOKUP_TABLE_6_WHITE = new Map();
-// const SCORE_LOOKUP_TABLE_6_BLACK = new Map();
 
 const SCORE_LOOKUP_TABLE_5 = {
 	[PIECES.BLACK]: new Map(),
@@ -70,8 +64,8 @@ function _PreCalculateScoreOfRow(row, targetColor) {
 		if (QUADS_6_OPPONENT.hasOwnProperty(fullRowStr)) return -QUAD_SCORE;
 
 		// Check for TRIPLES
-		if (TRIPLES_6_BEST.hasOwnProperty(fullRowStr)) return 2*TRIPLE_SCORE;
-		if (TRIPLES_6_BEST_OPPONENT.hasOwnProperty(fullRowStr)) return -2*TRIPLE_SCORE;
+		if (TRIPLES_6_BEST.hasOwnProperty(fullRowStr)) return 2 * TRIPLE_SCORE;
+		if (TRIPLES_6_BEST_OPPONENT.hasOwnProperty(fullRowStr)) return -2 * TRIPLE_SCORE;
 
 		// Check for TRIPLES
 		if (TRIPLES_6_OKAY.hasOwnProperty(fullRowStr)) return TRIPLE_SCORE;
@@ -121,12 +115,12 @@ function _GenerateRowScoreLookupTable() {
 				for (let dd = 0; dd <= 2; ++dd) {
 					for (let ee = 0; ee <= 2; ++ee) {
 						let rowInt = _RowToInt([charInts[aa], charInts[bb], charInts[cc], charInts[dd], charInts[ee]]);
-						
+
 						SCORE_LOOKUP_TABLE_5[PIECES.WHITE].set(rowInt, _PreCalculateScoreOfRow([charsWhite[aa], charsWhite[bb], charsWhite[cc], charsWhite[dd], charsWhite[ee]], PIECES.WHITE));
 						SCORE_LOOKUP_TABLE_5[PIECES.BLACK].set(rowInt, _PreCalculateScoreOfRow([charsBlack[aa], charsBlack[bb], charsBlack[cc], charsBlack[dd], charsBlack[ee]], PIECES.BLACK));
-						
+
 						for (let ff = 0; ff <= 2; ++ff) {
-							rowInt =  _RowToInt([charInts[aa], charInts[bb], charInts[cc], charInts[dd], charInts[ee], charInts[ff]]);
+							rowInt = _RowToInt([charInts[aa], charInts[bb], charInts[cc], charInts[dd], charInts[ee], charInts[ff]]);
 							SCORE_LOOKUP_TABLE_6[PIECES.WHITE].set(rowInt, _PreCalculateScoreOfRow([charsWhite[aa], charsWhite[bb], charsWhite[cc], charsWhite[dd], charsWhite[ee], charsWhite[ff]], PIECES.WHITE));
 							SCORE_LOOKUP_TABLE_6[PIECES.BLACK].set(rowInt, _PreCalculateScoreOfRow([charsBlack[aa], charsBlack[bb], charsBlack[cc], charsBlack[dd], charsBlack[ee], charsBlack[ff]], PIECES.BLACK));
 						}
@@ -218,52 +212,49 @@ function RotateGame(game, quadrant, direction) {
 	}
 }
 
+function PrettyResult(result) {
+	let niceResults = result.map(x => x);
+	niceResults[1] = niceResults[1] === 0 ? 'Q1' :
+		niceResults[1] === 1 ? 'Q2' :
+			niceResults[1] === 2 ? 'Q3' :
+				'Q4';
+	niceResults[2] = niceResults[2] === false ? 'Left' : 'Right';
+	return niceResults;
+}
+
 _GenerateRowScoreLookupTable();
-
-// let player = PIECES.WHITE;
-// let testGame = [PIECES.EMPTY, PIECES.EMPTY, PIECES.EMPTY, PIECES.EMPTY, PIECES.EMPTY, PIECES.EMPTY];
-// let result = _PreCalculateScoreOfRow(testGame, player);
-
-// console.log(SCORE_LOOKUP_TABLE_6_WHITE);
 
 // let GAME_ARR = [1,1,3,3,3,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
 // let GAME_ARR = [1,3,3,3,3,1,1,1,2,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
 // let GAME_ARR = [3,3,3,3,3,1,1,1,2,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
 // let GAME_ARR = [3,3,3,3,3,1,1,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
-// let GAME_ARR = [3,3,3,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+// let GAME_ARR = [3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-// let GAME_ARR = [1,1,3,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,2,1,1,1,1,3,2,1,1,1,1,3,2,3,1,3,1,2];
-let GAME_ARR = [1,1,3,1,1,1,2,1,1,1,1,1,2,1,1,1,3,1,2,1,1,3,1,1,2,1,1,1,1,1,2,3,1,2,3,3];
+// console.log({
+// 	white: Evaluate(GAME_ARR, PIECES.WHITE),
+// 	black: Evaluate(GAME_ARR, PIECES.BLACK),
+// });
 
-console.log({
-	white: Evaluate(GAME_ARR, PIECES.WHITE),
-	black: Evaluate(GAME_ARR, PIECES.BLACK),
-});
+// let iters = 1_000_000;
+// let i = 0;
 
-// console.log({testGame, result, player});
+// let timer = Date.now();
 
+// while (i < iters) {
+// 	RotateGame(GAME_ARR, 0, true);
+// 	RotateGame(GAME_ARR, 1, true);
+// 	RotateGame(GAME_ARR, 2, true);
+// 	RotateGame(GAME_ARR, 3, true);
+// 	Evaluate(GAME_ARR, PIECES.WHITE);
+// 	i++;
+// }
 
+// timer = Date.now() - timer;
 
-let iters = 10_000_000;
-let i = 0;
+// console.log(`Time Taken (ms): ${timer}`);
 
-let timer = Date.now();
-
-// let GAME_ARR = [1, -1, 1, 0, -1, 0, -1, 0, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, 0, -1, 0, -1, 0, 1, -1, 1];
-
-while (i < iters) {
-	// RotateGame(GAME, 0, true);
-	// RotateGame(GAME, 1, true);
-	// RotateGame(GAME, 2, true);
-	// RotateGame(GAME, 3, true);
-	RotateGame(GAME_ARR, 0, true);
-	RotateGame(GAME_ARR, 1, true);
-	RotateGame(GAME_ARR, 2, true);
-	RotateGame(GAME_ARR, 3, true);
-	Evaluate(GAME_ARR, PIECES.WHITE);
-	i++;
-}
-
-timer = Date.now() - timer;
-
-console.log(`Time Taken (ms): ${timer}`);
+module.exports = {
+	PrettyResult,
+	RotateGame,
+	Evaluate,
+};

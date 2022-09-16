@@ -7,6 +7,9 @@ let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
 
+// let bestIndexFromMoveList = {};
+// let bestIndex2 = -1;
+
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
 	PIECES = pieces;
@@ -31,6 +34,8 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		let searchCallsStr = numberFormatter.format(searchCalls.toString());
 		depthTime = numberFormatter.format(depthTime.toString());
 
+		// console.log(bestIndexFromMoveList);
+
 		if (result === Number.MIN_SAFE_INTEGER) {
 			completeCallback({}, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 			break;
@@ -40,9 +45,8 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 			completeCallback({}, `Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 			break;
 		}
-
 		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
+		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
 		// depthOneResults.forEach(move => eventCallback(move));
 		
 		// Store all the initial moves that will lead to a loss. These moves will not be played.
@@ -52,6 +56,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		
 		depth++;
 		depthOneResults = [];
+		// bestIndexFromMoveList = {};
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 	}
@@ -103,6 +108,9 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
+
+			// if (evaluationOfMove > bestScore) bestIndex2 = i;
+
 			bestScore = Math.max(bestScore, evaluationOfMove);
 
 			// Only do Alpha-Beta after depth 2
@@ -111,6 +119,10 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 				alpha = Math.max(alpha, bestScore);
 			}
 		}
+
+		// if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
+		// if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
+		// bestIndexFromMoveList[depth][bestIndex2] += 1;
 
 		return bestScore;
 	} else {
@@ -127,6 +139,8 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			RotateGame(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = PIECES.EMPTY;
 
+			// if (evaluationOfMove < bestScore) bestIndex2 = i;
+
 			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
 
 			// Only do Alpha-Beta after depth 2
@@ -136,27 +150,54 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 		}
 
+		// if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
+		// if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
+		// bestIndexFromMoveList[depth][bestIndex2] += 1;
+
 		return bestScore;
 	}
 }
 
-function GetEmptyIndices(game) {
-	let emptyIndexList = [];
+function GetEmptyIndices(game, targetColor) {
+	let validMoves = [];
+	let iterativeDeepening = [];
+
+	let evalScore = 0;
+
+	let scoreLookup = new Map();
+	let moveId = 0;
 
 	for (let i = 0; i < game.length; ++i) {
-		if (game[i] === PIECES.EMPTY) {
-			emptyIndexList.push([i, 0, false]);
-			emptyIndexList.push([i, 0, true]);
-			emptyIndexList.push([i, 1, false]);
-			emptyIndexList.push([i, 1, true]);
-			emptyIndexList.push([i, 2, false]);
-			emptyIndexList.push([i, 2, true]);
-			emptyIndexList.push([i, 3, false]);
-			emptyIndexList.push([i, 3, true]);
+		if (game[i] !== PIECES.EMPTY) continue;
+
+		game[i] = targetColor;
+
+		for (let r = 0; r < 8; ++r) {
+			moveId = (1000 * i) +  r;
+			
+			RotateGame(game, r % 4, (r > 3));
+			evalScore = Evaluate(game, targetColor);
+			RotateGame(game, r % 4, !(r > 3));
+
+			// Only search moves that result in a better position after the move.
+			if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+				scoreLookup.set(moveId, evalScore);
+				validMoves.push([i, r % 4, (r > 3)]);
+			}
 		}
+
+		game[i] = PIECES.EMPTY;
 	}
 
-	return emptyIndexList;
+	validMoves.sort((a,b) => {
+		let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+		let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+
+		return scoreA > scoreB ? -1 : 1;
+	});
+
+	// Only return the top 75%. 
+	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
 module.exports = SearchAux;

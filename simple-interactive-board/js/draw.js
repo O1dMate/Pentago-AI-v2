@@ -213,3 +213,30 @@ function DrawBoard() {
 	if (pieceSelected !== null) currentlyHighlightedPieceIndex = pieceSelected;
 	else currentlyHighlightedPieceIndex = -1;
 }
+
+let QUADRANT_INDICES = [0,1,2,8,14,13,12,6];
+let LEFT_TURN_ADD_AMOUNT = [2,7,12,5,-2,-7,-12,-5]; // Based on the QUADRANT_INDICES Array
+let RIGHT_TURN_ADD_AMOUNT = [12,5,-2,-7,-12,-5,2,7]; // Based on the QUADRANT_INDICES Array
+let QUADRANT_PLUS_AMOUNTS = [0,3,18,21];
+
+// game = game board
+// quadrant = 0,1,2,3 (TL, TR, BL, BR)
+// direction = false,true (left, right)
+function RotateBoard(game, quadrant, direction) {
+	let plusAmount = QUADRANT_PLUS_AMOUNTS[quadrant];
+
+	let oldLeftValues = [game[QUADRANT_INDICES[0]+plusAmount], game[QUADRANT_INDICES[1]+plusAmount]];
+	let oldRightValues = [game[QUADRANT_INDICES[6]+plusAmount], game[QUADRANT_INDICES[7]+plusAmount]];
+
+	if (!direction) {
+		for (let i = 0; i < QUADRANT_INDICES.length; ++i) {
+			if (i > 5) game[QUADRANT_INDICES[i]+plusAmount] = oldLeftValues[i-6];
+			else game[QUADRANT_INDICES[i]+plusAmount] = game[QUADRANT_INDICES[i]+plusAmount+LEFT_TURN_ADD_AMOUNT[i]];
+		}
+	} else {
+		for (let i = QUADRANT_INDICES.length-1; i > -1; --i) {
+			if (i < 2) game[QUADRANT_INDICES[i]+plusAmount] = oldRightValues[i];
+			else game[QUADRANT_INDICES[i]+plusAmount] = game[QUADRANT_INDICES[i]+plusAmount+RIGHT_TURN_ADD_AMOUNT[i]];
+		}
+	}
+}

@@ -6,6 +6,13 @@ let PIECES;
 let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
+let globalIterativeDeepeningResultsEven = [];
+let globalIterativeDeepeningResultsOdd = [];
+let iterativeDeepeningResults = [];
+
+let TRANSPOSITION_TABLE = new Map();
+let TRANSPOSITION_MAX_DEPTH = 0;
+const TRANSPOSITION_MAX_SIZE = 6_000_000;
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
@@ -13,11 +20,13 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 
 	let GamePieces = gameStr.split(',').map(x => parseInt(x));
 
+	TRANSPOSITION_MAX_DEPTH = SEARCH_DEPTH - 1;
 	searchCalls = 0n;
 	let depth = 1;
 	let depthTime = 0;
 
 	while (depth <= SEARCH_DEPTH) {
+		TRANSPOSITION_MAX_DEPTH = depth - 1;
 		searchCalls = 0n;
 		originalDepth = depth;
 
@@ -43,15 +52,55 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 
 		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
-		// depthOneResults.forEach(move => eventCallback(move));
+		// if (depth === 4) depthOneResults.forEach(move => eventCallback(move));
 		
+		// Iterative Deepening
+		let maxScoreForSearch = depthOneResults[0].score;
+		let movesThatYieldMaxScore = depthOneResults.filter(move => move.score === maxScoreForSearch);
+		iterativeDeepeningResults = {};
+		movesThatYieldMaxScore.forEach(move => {
+			let arrayMove = JSON.parse(move.move);
+			let moveId = (1000 * arrayMove[0]) + (arrayMove[1]) + (arrayMove[2] ? 4 : 0);
+
+			let arrayToUse;
+
+			if (depth % 2 === 0) {
+				arrayToUse = globalIterativeDeepeningResultsEven;
+			} else {
+				arrayToUse = globalIterativeDeepeningResultsOdd;
+			}
+
+			// Check if the move is already in the list
+			if (arrayToUse.includes(moveId)) {
+				// If it is, remove it so it can be placed at the front.
+				arrayToUse = arrayToUse.filter(id => id !== moveId);
+			}
+
+			arrayToUse.unshift(moveId);
+
+			if (depth % 2 === 0) {
+				iterativeDeepeningResults = globalIterativeDeepeningResultsOdd.map(x => x);
+				// iterativeDeepeningResults = [...globalIterativeDeepeningResultsOdd.map(x => x), ...globalIterativeDeepeningResultsEven.map(x => x)];
+			} else {
+				iterativeDeepeningResults = globalIterativeDeepeningResultsEven.map(x => x);
+				// iterativeDeepeningResults = [...globalIterativeDeepeningResultsEven.map(x => x), ...globalIterativeDeepeningResultsOdd.map(x => x)];
+			}
+
+			// Remove Duplicates
+			iterativeDeepeningResults = [...new Set(iterativeDeepeningResults)];
+		});
+		// movesThatYieldMaxScore.forEach(move => eventCallback(move));
+
 		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.forEach(move => {
 			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
 		});
+
+		// console.log('TRANSPOSITION_TABLE Size:', TRANSPOSITION_TABLE.size);
 		
 		depth++;
 		depthOneResults = [];
+		TRANSPOSITION_TABLE.clear();
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 	}
@@ -63,26 +112,59 @@ let depthOneResults = [];
 let depthOneMovesToAvoid = {};
 
 function Search(game, depth, player, currentTurn, alpha, beta) {
+	// Transposition Lookup - Create Key
+	let gameKey;
+
+	if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH) gameKey = game.toString();
+
+	// if (resultAlreadyExists !== undefined) {
+	// 	// console.log('Game Already Scene Before:');
+	// 	// console.log(game.toString());
+	// 	// // process.exit(0);
+	// 	return resultAlreadyExists;
+	// }
+
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
 
-	if (depth <= 0) return currentGameScore;
-	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return currentGameScore;
+	if (depth <= 0) {
+		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, currentGameScore);
+		return currentGameScore;
+	}
+	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) {
+		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, currentGameScore);
+		return currentGameScore;
+	}
 
 	let listOfMoves = GetEmptyIndices(game, currentTurn);
 
-	if (listOfMoves.length === 0) return currentGameScore;
+	if (listOfMoves.length === 0) {
+		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, currentGameScore);
+		return currentGameScore;
+	}
 
 	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
+
+	// Transposition Lookup - Check for Existing result
+	let resultAlreadyExists;
+	if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH) resultAlreadyExists = TRANSPOSITION_TABLE.get(gameKey);
 
 	if (player === currentTurn) {
 		let bestScore = Number.MIN_SAFE_INTEGER;
 
 		// If we are at the first move, and we know that the move will lead to a loss, don't explore at the move at all.
 		if (depth === originalDepth) {
+			iterativeDeepeningResults = [];
+			
 			// Remove all the moves that we know will lead to a loss.
 			listOfMoves = listOfMoves.filter(move => !depthOneMovesToAvoid.hasOwnProperty(JSON.stringify(move)));
+		}
+
+		// Transposition Lookup
+		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && resultAlreadyExists !== undefined) {
+			bestScore = resultAlreadyExists;
+			if (bestScore >= beta) return bestScore;
 		}
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
@@ -112,9 +194,15 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 		}
 
+		if (TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, bestScore);
 		return bestScore;
 	} else {
 		let bestScore = Number.MAX_SAFE_INTEGER;
+
+		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && resultAlreadyExists !== undefined) {
+			bestScore = resultAlreadyExists;
+			if (bestScore <= alpha) return bestScore;
+		}
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
 			// Modify the Game Board with the move
@@ -136,16 +224,23 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 		}
 
+		if (resultAlreadyExists !== undefined && resultAlreadyExists !== bestScore) {
+			// console.log({resultAlreadyExists, bestScore});
+			// process.exit(0);
+		}
+
+		if (TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, bestScore);
 		return bestScore;
 	}
 }
 
 function GetEmptyIndices(game, targetColor) {
 	let validMoves = [];
+	let iterativeDeepening = new Array(iterativeDeepeningResults.length);
 
-	let originalScore = Evaluate(game, targetColor);
 	let evalScore = 0;
 
+	let originalScore = Evaluate(game, targetColor);
 	let scoreLookup = new Map();
 	let moveId = 0;
 
@@ -155,29 +250,27 @@ function GetEmptyIndices(game, targetColor) {
 		game[i] = targetColor;
 
 		for (let r = 0; r < 8; ++r) {
-			RotateGame(game, r % 4, (r > 3));
-			evalScore = Evaluate(game, targetColor) - originalScore;
 			moveId = (1000 * i) +  r;
 			
-			// Only search moves that result in a better position after the move. TODO: More testing on whether this is a good idea.
-			if (evalScore > 0) {
-				scoreLookup.set(moveId, evalScore);
-				validMoves.push([i, r%4, (r > 3)]);
+			if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
+				iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
 			}
-			RotateGame(game, r % 4, !(r > 3));
+			else {
+				RotateGame(game, r % 4, (r > 3));
+				evalScore = Evaluate(game, targetColor);
+				RotateGame(game, r % 4, !(r > 3));
+				
+				// Only search moves that result in a better position after the move.
+				// if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000) && evalScore > originalScore) {
+				if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+					scoreLookup.set(moveId, evalScore);
+					validMoves.push([i, r%4, (r > 3)]);
+				}
+			}
+
 		}
 
 		game[i] = PIECES.EMPTY;
-	}
-
-	if (validMoves.length === 0) {
-		for (let i = 0; i < game.length; ++i) {
-			if (game[i] !== PIECES.EMPTY) continue;
-			validMoves.push([i, 0, false]); validMoves.push([i, 0, true]);
-			validMoves.push([i, 1, false]); validMoves.push([i, 1, true]);
-			validMoves.push([i, 2, false]); validMoves.push([i, 2, true]);
-			validMoves.push([i, 3, false]); validMoves.push([i, 3, true]);
-		}
 	}
 
 	validMoves.sort((a,b) => {
@@ -187,7 +280,10 @@ function GetEmptyIndices(game, targetColor) {
 		return scoreA > scoreB ? -1 : 1;
 	});
 
-	return validMoves;
+	validMoves = [...iterativeDeepening, ...validMoves];
+
+	// Only return the top 75% 
+	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
 module.exports = SearchAux;

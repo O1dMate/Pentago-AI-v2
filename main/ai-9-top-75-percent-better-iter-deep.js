@@ -6,6 +6,9 @@ let PIECES;
 let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
+let globalIterativeDeepeningResultsEven = [];
+let globalIterativeDeepeningResultsOdd = [];
+let iterativeDeepeningResults = [];
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
@@ -42,9 +45,41 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		}
 
 		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
+		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
 		// depthOneResults.forEach(move => eventCallback(move));
 		
+		// Iterative Deepening
+		let maxScoreForSearch = depthOneResults[0].score;
+		let movesThatYieldMaxScore = depthOneResults.filter(move => move.score === maxScoreForSearch);
+		iterativeDeepeningResults = {};
+		movesThatYieldMaxScore.forEach(move => {
+			let arrayMove = JSON.parse(move.move);
+			let moveId = (1000 * arrayMove[0]) + (arrayMove[1]) + (arrayMove[2] ? 4 : 0);
+
+			let arrayToUse;
+
+			if (depth % 2 === 0) {
+				arrayToUse = globalIterativeDeepeningResultsEven;
+			} else {
+				arrayToUse = globalIterativeDeepeningResultsOdd;
+			}
+
+			// Check if the move is already in the list
+			if (arrayToUse.includes(moveId)) {
+				// If it is, remove it so it can be placed at the front.
+				arrayToUse = arrayToUse.filter(id => id !== moveId);
+			}
+
+			arrayToUse.unshift(moveId);
+
+			if (depth % 2 === 0) {
+				iterativeDeepeningResults = globalIterativeDeepeningResultsOdd.map(x => x);
+			} else {
+				iterativeDeepeningResults = globalIterativeDeepeningResultsEven.map(x => x);
+			}
+		});
+		// movesThatYieldMaxScore.forEach(move => eventCallback(move));
+
 		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.forEach(move => {
 			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
@@ -81,6 +116,8 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 		// If we are at the first move, and we know that the move will lead to a loss, don't explore at the move at all.
 		if (depth === originalDepth) {
+			iterativeDeepeningResults = [];
+
 			// Remove all the moves that we know will lead to a loss.
 			listOfMoves = listOfMoves.filter(move => !depthOneMovesToAvoid.hasOwnProperty(JSON.stringify(move)));
 		}
@@ -140,23 +177,54 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 	}
 }
 
-function GetEmptyIndices(game) {
-	let emptyIndexList = [];
+function GetEmptyIndices(game, targetColor) {
+	let validMoves = [];
+	let iterativeDeepening = new Array(iterativeDeepeningResults.length);
+
+	let evalScore = 0;
+
+	let scoreLookup = new Map();
+	let moveId = 0;
 
 	for (let i = 0; i < game.length; ++i) {
-		if (game[i] === PIECES.EMPTY) {
-			emptyIndexList.push([i, 0, false]);
-			emptyIndexList.push([i, 0, true]);
-			emptyIndexList.push([i, 1, false]);
-			emptyIndexList.push([i, 1, true]);
-			emptyIndexList.push([i, 2, false]);
-			emptyIndexList.push([i, 2, true]);
-			emptyIndexList.push([i, 3, false]);
-			emptyIndexList.push([i, 3, true]);
+		if (game[i] !== PIECES.EMPTY) continue;
+
+		game[i] = targetColor;
+
+		for (let r = 0; r < 8; ++r) {
+			moveId = (1000 * i) +  r;
+			
+			if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
+				iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
+			}
+			else {
+				RotateGame(game, r % 4, (r > 3));
+				evalScore = Evaluate(game, targetColor);
+				RotateGame(game, r % 4, !(r > 3));
+				
+				// Only search moves that result in a better position after the move.
+				if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+					scoreLookup.set(moveId, evalScore);
+					validMoves.push([i, r%4, (r > 3)]);
+				}
+			}
+
 		}
+
+		game[i] = PIECES.EMPTY;
 	}
 
-	return emptyIndexList;
+	validMoves.sort((a,b) => {
+		let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+		let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+
+		return scoreA > scoreB ? -1 : 1;
+	});
+
+	validMoves = [...iterativeDeepening, ...validMoves];
+
+	// Only return the top 75% 
+	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
 module.exports = SearchAux;

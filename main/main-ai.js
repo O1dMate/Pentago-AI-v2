@@ -8,6 +8,7 @@ const top75PercentAi = require('./ai-7-top-75-percent');
 const top75PercentNoIterDeepAi = require('./ai-8-top-75-percent-no-iter-deep');
 const top75PercentBetterIterDeepAi = require('./ai-9-top-75-percent-better-iter-deep');
 const transpositionLookupAi = require('./ai-10-transposition-lookup');
+const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
 
 // const standardAi = require('./AI_Standard');
 // const alphaBetaOnlyAi = require('./AI_Standard_Alpha_Beta');
@@ -93,10 +94,12 @@ function main() {
 	}
 	
 	
-	console.log('\ntranspositionLookupAi');
-	transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\ntop75PercentBetterIterDeepAi');
-	top75PercentBetterIterDeepAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\ntranspositionLookupAi');
+	// transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nmoveOrderingRowScoreAi');
+	moveOrderingRowScoreAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\ntop75PercentBetterIterDeepAi');
+	// top75PercentBetterIterDeepAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentNoIterDeepAi');
 	// top75PercentNoIterDeepAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentAi');
@@ -111,8 +114,8 @@ function main() {
 	// depthOneResultsAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nalphaBetaAi');
 	// alphaBetaAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	// console.log('\nstandardAi');
-	// standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nstandardAi');
+	standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 
 	// Transposition Table only seems useful in the early stages of the game. In the Endgame, the board isn't almost certain not symmetric so the Transposition table doesn't help much.
 	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');

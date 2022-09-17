@@ -185,6 +185,118 @@ function EvaluateStrength(game, targetColor) {
 	return score;
 }
 
+function FindHighestScoringRows(game, targetColor) {
+	let score = 0;
+	let tempScore = 0;
+	let rowInt = 0;
+	
+	let bestRowScores = [Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+	let bestRowIndices = [-1, -1];
+
+	let moveQuality = {
+		good1: [],
+		good2: [],
+		good3: [],
+		good4: [],
+		good5: [],
+		bad1: [],
+		bad2: [],
+		bad3: [],
+		bad4: [],
+		bad5: [],
+	};
+
+	// TODO: Think about how to handle if there is a winning move
+
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		rowInt = _RowToInt([game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]]);
+		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+
+		if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(i);
+		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(i);
+		else if (tempScore === TRIPLE_SCORE) moveQuality.good3.push(i);
+		else if (tempScore === PAIR_SCORE) moveQuality.good4.push(i);
+		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good5.push(i);
+
+		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(i);
+		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(i);
+		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad3.push(i);
+		else if (tempScore === -PAIR_SCORE) moveQuality.bad4.push(i);
+		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad5.push(i);
+
+		// if (tempScore > bestRowScores[0]) {
+		// 	if (bestRowScores[0] > bestRowScores[1]) {
+		// 		bestRowScores[1] = bestRowScores[0];
+		// 		bestRowIndices[1] = bestRowIndices[0];
+		// 	}
+
+		// 	bestRowScores[0] = tempScore;
+		// 	bestRowIndices[0] = i;
+		// }
+		// else if (tempScore > bestRowScores[1]) {
+		// 	bestRowScores[1] = tempScore;
+		// 	bestRowIndices[1] = i;
+		// }
+
+		// if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
+		// score += tempScore;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		rowInt = _RowToInt([game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]]);
+		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+
+		if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(i+10);
+		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(i+10);
+		else if (tempScore === TRIPLE_SCORE) moveQuality.good3.push(i+10);
+		else if (tempScore === PAIR_SCORE) moveQuality.good4.push(i+10);
+		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good5.push(i+10);
+
+		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(i+10);
+		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(i+10);
+		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad3.push(i+10);
+		else if (tempScore === -PAIR_SCORE) moveQuality.bad4.push(i+10);
+		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad5.push(i+10);
+
+		// if (tempScore > bestRowScores[0]) {
+		// 	if (bestRowScores[0] > bestRowScores[1]) {
+		// 		bestRowScores[1] = bestRowScores[0];
+		// 		bestRowIndices[1] = bestRowIndices[0];
+		// 	}
+
+		// 	bestRowScores[0] = tempScore;
+		// 	bestRowIndices[0] = 10 * i;
+		// }
+		// else if (tempScore > bestRowScores[1]) {
+		// 	bestRowScores[1] = tempScore;
+		// 	bestRowIndices[1] = 10 * i;
+		// }
+
+		// if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
+		// score += tempScore;
+	}
+
+	// console.log({bestRowScores});
+	// console.log({bestRowIndices});
+	console.log(moveQuality)
+	return;
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]]);
+			tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+		} else {
+			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]]]);
+			tempScore = SCORE_LOOKUP_TABLE_5[targetColor].get(rowInt);
+		}
+
+		if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
+		score += tempScore;
+	}
+
+	return score;
+}
+
 const QUADRANT_INDICES = [0, 1, 2, 8, 14, 13, 12, 6];
 const LEFT_TURN_ADD_AMOUNT = [2, 7, 12, 5, -2, -7, -12, -5]; // Based on the QUADRANT_INDICES Array
 const RIGHT_TURN_ADD_AMOUNT = [12, 5, -2, -7, -12, -5, 2, 7]; // Based on the QUADRANT_INDICES Array
@@ -222,6 +334,29 @@ function PrettyResult(result) {
 	return niceResults;
 }
 
+function DrawGame(game) {
+
+	let gameArr = game.map(x => x === 1 ? '-' : x === 2 ? 'B' : 'W');
+	let stringsToPrint = [];
+	let currentLine = '';
+
+	for (let i = 0; i < 36; ++i) {
+		currentLine += gameArr[i] + ' ';
+
+		if ((i + 1) !== 0 && (i + 1) % 6 === 0) {
+			currentLine += '\n';
+			stringsToPrint.push(currentLine);
+			currentLine = '';
+		}
+		else if ((i + 1) !== 0 && (i + 1) % 3 === 0) {
+			currentLine += ' ';
+		}
+		if (i === 17) stringsToPrint.push('\n');
+	}
+
+	console.log('\n' + stringsToPrint.join(''));
+}
+
 _GenerateRowScoreLookupTable();
 
 // let GAME_ARR = [1,1,3,3,3,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
@@ -255,6 +390,8 @@ _GenerateRowScoreLookupTable();
 
 module.exports = {
 	PrettyResult,
+	DrawGame,
 	RotateGame,
 	Evaluate,
+	FindHighestScoringRows,
 };

@@ -175,7 +175,7 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 		return currentGameScore;
 	}
 
-	let listOfMoves = GetEmptyIndices(game, currentTurn);
+	let listOfMoves = GetEmptyIndices(game, currentTurn, depth);
 
 	if (listOfMoves.length === 0) {
 		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, currentGameScore);
@@ -272,73 +272,147 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 	}
 }
 
-function GetEmptyIndices(game, targetColor) {
+function GetEmptyIndices(game, targetColor, depth) {
 	let validMoves = [];
 	// let iterativeDeepening = new Array(iterativeDeepeningResults.length);
 
 	// FindHighestScoringRows(game, targetColor);
 	// DrawGame(game);
+
+	let movesToPerform = {
+		level1: [],
+		level2: [],
+		level3: [],
+		level4: [],
+		level5: [],
+		level6: [],
+		level7: [],
+	};
 	
 	// Determine which rotation is likely to be best
 	for (let i = 0; i < 8; ++i) {
 		RotateGame(game, i % 4, (i > 3));
 		
-		console.log();
-		FindHighestScoringRows(game, targetColor);
-		DrawGame(game);
-		process.exit(0);
+		// console.log();
+		let moveQuality = FindHighestScoringRows(game, targetColor);
+		
+		// console.log(moveQuality);
+		// DrawGame(game);
 
 		RotateGame(game, i % 4, !(i > 3));
-	}
+		
+		// let movesToProcess = [];
 
-
-
-	let evalScore = 0;
-
-	let originalScore = Evaluate(game, targetColor);
-	let scoreLookup = new Map();
-	let moveId = 0;
-
-	for (let i = 0; i < game.length; ++i) {
-		if (game[i] !== PIECES.EMPTY) continue;
-
-		game[i] = targetColor;
-
-		for (let r = 0; r < 8; ++r) {
-			moveId = (1000 * i) +  r;
-			
-			if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
-				iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
-			}
-			else {
-				RotateGame(game, r % 4, (r > 3));
-				evalScore = Evaluate(game, targetColor);
-				RotateGame(game, r % 4, !(r > 3));
-				
-				// Only search moves that result in a better position after the move.
-				// if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000) && evalScore > originalScore) {
-				if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
-					scoreLookup.set(moveId, evalScore);
-					validMoves.push([i, r%4, (r > 3)]);
-				}
-			}
-
+		// Rotation results in a lose. Exclude all these moves immediately
+		if (moveQuality.lose.length > 0) continue;
+		// Rotation results in a win.
+		else if (moveQuality.win.length > 0) {
+			let winningIndex = BeforeAfterRotationLookup[i][moveQuality.win[0][0]];
+			return [[winningIndex, i%4, i>3]];
 		}
 
-		game[i] = PIECES.EMPTY;
+		if (moveQuality.good1.length > 0) movesToPerform.level1.push(...moveQuality.good1.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad1.length > 0) movesToPerform.level1.push(...moveQuality.bad1.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+
+		if (moveQuality.good2.length > 0) movesToPerform.level2.push(...moveQuality.good2.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad2.length > 0) movesToPerform.level2.push(...moveQuality.bad2.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+
+		if (moveQuality.good3.length > 0) movesToPerform.level3.push(...moveQuality.good3.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad3.length > 0) movesToPerform.level3.push(...moveQuality.bad3.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+
+		if (moveQuality.good4.length > 0) movesToPerform.level4.push(...moveQuality.good4.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad4.length > 0) movesToPerform.level4.push(...moveQuality.bad4.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+
+		if (moveQuality.good5.length > 0) movesToPerform.level5.push(...moveQuality.good5.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad5.length > 0) movesToPerform.level5.push(...moveQuality.bad5.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+		
+		if (moveQuality.good6.length > 0) movesToPerform.level6.push(...moveQuality.good6.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad6.length > 0) movesToPerform.level6.push(...moveQuality.bad6.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+
+		if (moveQuality.good7.length > 0) movesToPerform.level7.push(...moveQuality.good7.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+		if (moveQuality.bad7.length > 0) movesToPerform.level7.push(...moveQuality.bad7.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
 	}
+	
+	
+	validMoves = [
+		...movesToPerform.level1.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level2.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level3.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level4.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level5.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level6.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+		...movesToPerform.level7.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
+	];
+	
+	// if (originalDepth === 2 && depth === 1) {
 
-	validMoves.sort((a,b) => {
-		let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
-		let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+	// 	for (let i = 0; i < 8; ++i) {
+	// 		RotateGame(game, i % 4, (i > 3));
 
-		return scoreA > scoreB ? -1 : 1;
-	});
+	// 		// console.log();
+	// 		let moveQuality = FindHighestScoringRows(game, targetColor);
+	// 		console.log(moveQuality);
+	// 		DrawGame(game);
 
-	validMoves = [...iterativeDeepening, ...validMoves];
+	// 		RotateGame(game, i % 4, !(i > 3));
+	// 	}
 
-	// Only return the top 75% 
-	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
+		// console.log(movesToPerform);
+		// console.log(validMoves);
+		// DrawGame(game);
+	
+		// process.exit(0);
+	// }
+
+	
+	return validMoves.slice(0, Math.ceil(validMoves.length * 0.75));;
+
+	// let evalScore = 0;
+
+	// let originalScore = Evaluate(game, targetColor);
+	// let scoreLookup = new Map();
+	// let moveId = 0;
+
+	// for (let i = 0; i < game.length; ++i) {
+	// 	if (game[i] !== PIECES.EMPTY) continue;
+
+	// 	game[i] = targetColor;
+
+	// 	for (let r = 0; r < 8; ++r) {
+	// 		moveId = (1000 * i) +  r;
+			
+	// 		if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
+	// 			iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
+	// 		}
+	// 		else {
+	// 			RotateGame(game, r % 4, (r > 3));
+	// 			evalScore = Evaluate(game, targetColor);
+	// 			RotateGame(game, r % 4, !(r > 3));
+				
+	// 			// Only search moves that result in a better position after the move.
+	// 			// if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000) && evalScore > originalScore) {
+	// 			if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+	// 				scoreLookup.set(moveId, evalScore);
+	// 				validMoves.push([i, r%4, (r > 3)]);
+	// 			}
+	// 		}
+
+	// 	}
+
+	// 	game[i] = PIECES.EMPTY;
+	// }
+
+	// validMoves.sort((a,b) => {
+	// 	let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+	// 	let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+
+	// 	return scoreA > scoreB ? -1 : 1;
+	// });
+
+	// validMoves = [...iterativeDeepening, ...validMoves];
+
+	// // Only return the top 75% 
+	// return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
 module.exports = SearchAux;

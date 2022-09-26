@@ -9,6 +9,7 @@ const top75PercentNoIterDeepAi = require('./ai-8-top-75-percent-no-iter-deep');
 const top75PercentBetterIterDeepAi = require('./ai-9-top-75-percent-better-iter-deep');
 const transpositionLookupAi = require('./ai-10-transposition-lookup');
 const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
+const moveFilteringAi = require('./ai-12-move-filtering');
 
 // const standardAi = require('./AI_Standard');
 // const alphaBetaOnlyAi = require('./AI_Standard_Alpha_Beta');
@@ -23,7 +24,7 @@ const PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
 // ******************** UPDATABLE OPTIONS ********************
 const CURRENT_TURN = PIECES.BLACK;
 
-const SEARCH_DEPTH = 7;
+const SEARCH_DEPTH = 5;
 // ******************** UPDATABLE OPTIONS ********************
 
 // Track what piece is in location
@@ -79,8 +80,11 @@ function StartConfiguration() {
 	// GamePieces = "1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,2,3,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1".split(',').map(x => parseInt(x));
 
 	// GamePieces = "1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,2,3,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1".split(',').map(x => parseInt(x));
-	GamePieces = "1,2,1,1,3,1,1,3,3,2,3,1,1,1,1,2,3,1,1,1,1,3,1,1,1,2,3,2,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,2,1,1,3,1,1,3,3,2,3,1,1,1,1,2,3,1,1,1,1,3,1,1,1,2,3,2,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
 	// GamePieces = "1,1,1,1,3,1,1,3,2,2,3,1,1,3,1,2,3,1,1,1,1,1,2,3,1,2,3,1,2,1,1,3,1,1,2,1".split(',').map(x => parseInt(x));
+
+	GamePieces = "1,3,1,3,1,1,1,3,3,1,2,1,1,1,1,1,1,2,1,1,1,1,3,1,1,2,1,1,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,1,2,3,2,1,1,2,1,2,1,1,1,3,3,2,3,2,1,3,1,2,1,3,2,2,1,2,1,3,3,3,1,1,1".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -94,10 +98,12 @@ function main() {
 	}
 	
 	
-	// console.log('\ntranspositionLookupAi');
-	// transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\nmoveOrderingRowScoreAi');
-	moveOrderingRowScoreAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\nmoveOrderingRowScoreAi');
+	// moveOrderingRowScoreAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nmoveFilteringAi');
+	moveFilteringAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\ntranspositionLookupAi');
+	transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentBetterIterDeepAi');
 	// top75PercentBetterIterDeepAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentNoIterDeepAi');
@@ -114,8 +120,8 @@ function main() {
 	// depthOneResultsAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nalphaBetaAi');
 	// alphaBetaAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\nstandardAi');
-	standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\nstandardAi');
+	// standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 
 	// Transposition Table only seems useful in the early stages of the game. In the Endgame, the board isn't almost certain not symmetric so the Transposition table doesn't help much.
 	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');

@@ -7,8 +7,8 @@ let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
 
-// let bestIndexFromMoveList = {};
-// let bestIndex2 = -1;
+let bestIndexFromMoveList = {};
+let bestIndex2 = -1;
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
@@ -34,7 +34,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		let searchCallsStr = numberFormatter.format(searchCalls.toString());
 		depthTime = numberFormatter.format(depthTime.toString());
 
-		// console.log(bestIndexFromMoveList);
+		console.log(bestIndexFromMoveList);
 
 		if (result === Number.MIN_SAFE_INTEGER) {
 			completeCallback({}, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
@@ -56,7 +56,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		
 		depth++;
 		depthOneResults = [];
-		// bestIndexFromMoveList = {};
+		bestIndexFromMoveList = {};
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 	}
@@ -109,7 +109,7 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
 
-			// if (evaluationOfMove > bestScore) bestIndex2 = i;
+			if (evaluationOfMove > bestScore) bestIndex2 = i;
 
 			bestScore = Math.max(bestScore, evaluationOfMove);
 
@@ -120,9 +120,9 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 		}
 
-		// if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
-		// if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
-		// bestIndexFromMoveList[depth][bestIndex2] += 1;
+		if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
+		if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
+		bestIndexFromMoveList[depth][bestIndex2] += 1;
 
 		return bestScore;
 	} else {
@@ -139,7 +139,7 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			RotateGame(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = PIECES.EMPTY;
 
-			// if (evaluationOfMove < bestScore) bestIndex2 = i;
+			if (evaluationOfMove < bestScore) bestIndex2 = i;
 
 			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
 
@@ -150,9 +150,9 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 		}
 
-		// if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
-		// if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
-		// bestIndexFromMoveList[depth][bestIndex2] += 1;
+		if (!bestIndexFromMoveList[depth]) bestIndexFromMoveList[depth] = {};
+		if (!bestIndexFromMoveList[depth].hasOwnProperty(bestIndex2)) bestIndexFromMoveList[depth][bestIndex2] = 0;
+		bestIndexFromMoveList[depth][bestIndex2] += 1;
 
 		return bestScore;
 	}

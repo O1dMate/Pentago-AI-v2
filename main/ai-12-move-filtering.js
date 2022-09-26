@@ -1,4 +1,4 @@
-const { PrettyResult, RotateGame, Evaluate } = require('./aux-functions');
+const { PrettyResult, DrawGame, RotateGame, Evaluate, GetPositionToBlockWin } = require('./aux-functions');
 
 let SEARCH_DEPTH;
 let PIECES;
@@ -236,15 +236,57 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 function GetEmptyIndices(game, targetColor) {
 	let validMoves = [];
+	let priorityMoves = [];
 	let iterativeDeepening = new Array(iterativeDeepeningResults.length);
 
 	let evalScore = 0;
 
+	let originalScore = Evaluate(game, targetColor);
 	let scoreLookup = new Map();
+	let positionToBlockWin;
 	let moveId = 0;
+
+	if (originalScore < -800) {
+		// console.log(originalScore);
+		positionToBlockWin = GetPositionToBlockWin(game, targetColor);
+		// console.log({ originalScore });
+		// console.log({ positionToBlockWin });
+		// DrawGame(game);
+
+		let iter = positionToBlockWin.keys();
+		let iterValue = iter.next().value;
+
+		while (iterValue !== undefined) {
+			for (let r = 0; r < 8; ++r) {
+				moveId = (1000 * iterValue) + r;
+
+				RotateGame(game, r % 4, (r > 3));
+				evalScore = Evaluate(game, targetColor);
+				RotateGame(game, r % 4, !(r > 3));
+				
+				priorityMoves.push([iterValue, r % 4, (r > 3)]);
+				scoreLookup.set(moveId, evalScore);
+			}
+
+			iterValue = iter.next().value;
+		}
+
+		priorityMoves.sort((a, b) => {
+			let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+			let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+
+			return scoreA > scoreB ? -1 : 1;
+		});
+
+		// console.log(priorityMoves);
+		// console.log(scoreLookup);
+
+		// process.exit(0);
+	}
 
 	for (let i = 0; i < game.length; ++i) {
 		if (game[i] !== PIECES.EMPTY) continue;
+		if (positionToBlockWin && positionToBlockWin.has(i)) continue;
 
 		game[i] = targetColor;
 
@@ -260,8 +302,11 @@ function GetEmptyIndices(game, targetColor) {
 				RotateGame(game, r % 4, !(r > 3));
 				
 				// Only search moves that result in a better position after the move.
-				// if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000) && evalScore > originalScore) {
-				if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+				if (originalScore < 0 && evalScore < originalScore) continue;
+
+				if (evalScore === Number.MAX_SAFE_INTEGER) {
+					priorityMoves.unshift([i, r%4, (r > 3)]);
+				} else if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
 					scoreLookup.set(moveId, evalScore);
 					validMoves.push([i, r%4, (r > 3)]);
 				}
@@ -279,7 +324,7 @@ function GetEmptyIndices(game, targetColor) {
 		return scoreA > scoreB ? -1 : 1;
 	});
 
-	validMoves = [...iterativeDeepening, ...validMoves];
+	validMoves = [...iterativeDeepening, ...priorityMoves ,...validMoves];
 
 	// Only return the top 75% 
 	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));

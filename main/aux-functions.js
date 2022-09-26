@@ -185,25 +185,98 @@ function EvaluateStrength(game, targetColor) {
 	return score;
 }
 
+function GetPositionToBlockWin(game, targetColor) {
+	let emptyIndicesInThisRow = new Map();
+
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		rowInt = _RowToInt([game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]]);
+		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+
+		if (tempScore === -QUAD_SCORE || tempScore === -QUAD_OPEN_END_SCORE) {
+			// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+			if (game[ROW_INDICES[i][0]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][0], true);
+			if (game[ROW_INDICES[i][1]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][1], true);
+			if (game[ROW_INDICES[i][2]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][2], true);
+			if (game[ROW_INDICES[i][3]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][3], true);
+			if (game[ROW_INDICES[i][4]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][4], true);
+			if (game[ROW_INDICES[i][5]] === 1) emptyIndicesInThisRow.set(ROW_INDICES[i][5], true);
+			return emptyIndicesInThisRow;
+		}
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		rowInt = _RowToInt([game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]]);
+		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+
+		if (tempScore === -QUAD_SCORE || tempScore === -QUAD_OPEN_END_SCORE) {
+			// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+			if (game[COL_INDICES[i][0]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][0], true);
+			if (game[COL_INDICES[i][1]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][1], true);
+			if (game[COL_INDICES[i][2]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][2], true);
+			if (game[COL_INDICES[i][3]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][3], true);
+			if (game[COL_INDICES[i][4]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][4], true);
+			if (game[COL_INDICES[i][5]] === 1) emptyIndicesInThisRow.set(COL_INDICES[i][5], true);
+			return emptyIndicesInThisRow;
+		}
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]]);
+			tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
+
+			if (tempScore === -QUAD_SCORE || tempScore === -QUAD_OPEN_END_SCORE) {
+				// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+				if (game[DIAGONAL_INDICES[i][0]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][0], true);
+				if (game[DIAGONAL_INDICES[i][1]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][1], true);
+				if (game[DIAGONAL_INDICES[i][2]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][2], true);
+				if (game[DIAGONAL_INDICES[i][3]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][3], true);
+				if (game[DIAGONAL_INDICES[i][4]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][4], true);
+				if (game[DIAGONAL_INDICES[i][5]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][5], true);
+				return emptyIndicesInThisRow;
+			}
+		} else {
+			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]]]);
+			tempScore = SCORE_LOOKUP_TABLE_5[targetColor].get(rowInt);
+
+			if (tempScore === -QUAD_SCORE || tempScore === -QUAD_OPEN_END_SCORE) {
+				// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+				if (game[DIAGONAL_INDICES[i][0]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][0], true);
+				if (game[DIAGONAL_INDICES[i][1]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][1], true);
+				if (game[DIAGONAL_INDICES[i][2]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][2], true);
+				if (game[DIAGONAL_INDICES[i][3]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][3], true);
+				if (game[DIAGONAL_INDICES[i][4]] === 1) emptyIndicesInThisRow.set(DIAGONAL_INDICES[i][4], true);
+				return emptyIndicesInThisRow;
+			}
+		}
+	}
+
+	console.log('No Condition Matched');
+	console.log(game);
+	DrawGame(game);
+}
+
 function FindHighestScoringRows(game, targetColor) {
-	let score = 0;
 	let tempScore = 0;
 	let rowInt = 0;
-	
-	let bestRowScores = [Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
-	let bestRowIndices = [-1, -1];
 
 	let moveQuality = {
+		win: [],
+		lose: [],
 		good1: [],
 		good2: [],
 		good3: [],
 		good4: [],
 		good5: [],
+		good6: [],
+		good7: [],
 		bad1: [],
 		bad2: [],
 		bad3: [],
 		bad4: [],
 		bad5: [],
+		bad6: [],
+		bad7: [],
 	};
 
 	// TODO: Think about how to handle if there is a winning move
@@ -212,89 +285,115 @@ function FindHighestScoringRows(game, targetColor) {
 		rowInt = _RowToInt([game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]]);
 		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
 
-		if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(i);
-		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(i);
-		else if (tempScore === TRIPLE_SCORE) moveQuality.good3.push(i);
-		else if (tempScore === PAIR_SCORE) moveQuality.good4.push(i);
-		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good5.push(i);
+		// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+		let emptyIndicesInThisRow = [];
+		if (game[ROW_INDICES[i][0]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][0]);
+		if (game[ROW_INDICES[i][1]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][1]);
+		if (game[ROW_INDICES[i][2]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][2]);
+		if (game[ROW_INDICES[i][3]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][3]);
+		if (game[ROW_INDICES[i][4]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][4]);
+		if (game[ROW_INDICES[i][5]] === 1) emptyIndicesInThisRow.push(ROW_INDICES[i][5]);
+		
+		if (tempScore === Number.MAX_SAFE_INTEGER) moveQuality.win.push(emptyIndicesInThisRow);
+		else if (tempScore === Number.MIN_SAFE_INTEGER) moveQuality.lose.push(emptyIndicesInThisRow);
 
-		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(i);
-		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(i);
-		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad3.push(i);
-		else if (tempScore === -PAIR_SCORE) moveQuality.bad4.push(i);
-		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad5.push(i);
+		else if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(emptyIndicesInThisRow);
+		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(emptyIndicesInThisRow);
+		else if (tempScore === (2*TRIPLE_SCORE)) moveQuality.good3.push(emptyIndicesInThisRow);
+		else if (tempScore === TRIPLE_SCORE) moveQuality.good4.push(emptyIndicesInThisRow);
+		else if (tempScore === BLOCKED_TRIPLE_SCORE) moveQuality.good5.push(emptyIndicesInThisRow);
+		else if (tempScore === PAIR_SCORE) moveQuality.good6.push(emptyIndicesInThisRow);
+		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good7.push(emptyIndicesInThisRow);
 
-		// if (tempScore > bestRowScores[0]) {
-		// 	if (bestRowScores[0] > bestRowScores[1]) {
-		// 		bestRowScores[1] = bestRowScores[0];
-		// 		bestRowIndices[1] = bestRowIndices[0];
-		// 	}
+		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(emptyIndicesInThisRow);
+		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(emptyIndicesInThisRow);
+		else if (tempScore === (-2*TRIPLE_SCORE)) moveQuality.bad3.push(emptyIndicesInThisRow);
+		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad4.push(emptyIndicesInThisRow);
+		else if (tempScore === -BLOCKED_TRIPLE_SCORE) moveQuality.bad5.push(emptyIndicesInThisRow);
+		else if (tempScore === -PAIR_SCORE) moveQuality.bad6.push(emptyIndicesInThisRow);
+		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad7.push(emptyIndicesInThisRow);
 
-		// 	bestRowScores[0] = tempScore;
-		// 	bestRowIndices[0] = i;
-		// }
-		// else if (tempScore > bestRowScores[1]) {
-		// 	bestRowScores[1] = tempScore;
-		// 	bestRowIndices[1] = i;
-		// }
-
-		// if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
-		// score += tempScore;
+		else moveQuality.bad7.push(emptyIndicesInThisRow);
 	}
 
 	for (let i = 0; i < COL_INDICES.length; ++i) {
 		rowInt = _RowToInt([game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]]);
 		tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
 
-		if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(i+10);
-		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(i+10);
-		else if (tempScore === TRIPLE_SCORE) moveQuality.good3.push(i+10);
-		else if (tempScore === PAIR_SCORE) moveQuality.good4.push(i+10);
-		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good5.push(i+10);
+		// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+		let emptyIndicesInThisRow = [];
+		if (game[COL_INDICES[i][0]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][0]);
+		if (game[COL_INDICES[i][1]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][1]);
+		if (game[COL_INDICES[i][2]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][2]);
+		if (game[COL_INDICES[i][3]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][3]);
+		if (game[COL_INDICES[i][4]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][4]);
+		if (game[COL_INDICES[i][5]] === 1) emptyIndicesInThisRow.push(COL_INDICES[i][5]);
 
-		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(i+10);
-		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(i+10);
-		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad3.push(i+10);
-		else if (tempScore === -PAIR_SCORE) moveQuality.bad4.push(i+10);
-		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad5.push(i+10);
+		if (tempScore === Number.MAX_SAFE_INTEGER) moveQuality.win.push(emptyIndicesInThisRow);
+		else if (tempScore === Number.MIN_SAFE_INTEGER) moveQuality.lose.push(emptyIndicesInThisRow);
 
-		// if (tempScore > bestRowScores[0]) {
-		// 	if (bestRowScores[0] > bestRowScores[1]) {
-		// 		bestRowScores[1] = bestRowScores[0];
-		// 		bestRowIndices[1] = bestRowIndices[0];
-		// 	}
+		else if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(emptyIndicesInThisRow);
+		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(emptyIndicesInThisRow);
+		else if (tempScore === (2*TRIPLE_SCORE)) moveQuality.good3.push(emptyIndicesInThisRow);
+		else if (tempScore === TRIPLE_SCORE) moveQuality.good4.push(emptyIndicesInThisRow);
+		else if (tempScore === BLOCKED_TRIPLE_SCORE) moveQuality.good5.push(emptyIndicesInThisRow);
+		else if (tempScore === PAIR_SCORE) moveQuality.good6.push(emptyIndicesInThisRow);
+		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good7.push(emptyIndicesInThisRow);
 
-		// 	bestRowScores[0] = tempScore;
-		// 	bestRowIndices[0] = 10 * i;
-		// }
-		// else if (tempScore > bestRowScores[1]) {
-		// 	bestRowScores[1] = tempScore;
-		// 	bestRowIndices[1] = 10 * i;
-		// }
+		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(emptyIndicesInThisRow);
+		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(emptyIndicesInThisRow);
+		else if (tempScore === (-2*TRIPLE_SCORE)) moveQuality.bad3.push(emptyIndicesInThisRow);
+		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad4.push(emptyIndicesInThisRow);
+		else if (tempScore === -BLOCKED_TRIPLE_SCORE) moveQuality.bad5.push(emptyIndicesInThisRow);
+		else if (tempScore === -PAIR_SCORE) moveQuality.bad6.push(emptyIndicesInThisRow);
+		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad7.push(emptyIndicesInThisRow);
 
-		// if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
-		// score += tempScore;
+		else moveQuality.bad7.push(emptyIndicesInThisRow);
 	}
 
-	// console.log({bestRowScores});
-	// console.log({bestRowIndices});
-	console.log(moveQuality)
-	return;
-
+	
 	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		// TODO: This could be a lookup table to improve performance later on. The RowInt can be used to pre-calculate this.
+		let emptyIndicesInThisRow = [];
+		if (game[DIAGONAL_INDICES[i][0]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][0]);
+		if (game[DIAGONAL_INDICES[i][1]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][1]);
+		if (game[DIAGONAL_INDICES[i][2]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][2]);
+		if (game[DIAGONAL_INDICES[i][3]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][3]);
+		if (game[DIAGONAL_INDICES[i][4]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][4]);
+		
 		if (DIAGONAL_INDICES[i].length === 6) {
 			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]]);
 			tempScore = SCORE_LOOKUP_TABLE_6[targetColor].get(rowInt);
 		} else {
 			rowInt = _RowToInt([game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]]]);
 			tempScore = SCORE_LOOKUP_TABLE_5[targetColor].get(rowInt);
+			if (game[DIAGONAL_INDICES[i][5]] === 1) emptyIndicesInThisRow.push(DIAGONAL_INDICES[i][5]);
 		}
 
-		if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
-		score += tempScore;
-	}
 
-	return score;
+		if (tempScore === Number.MAX_SAFE_INTEGER) moveQuality.win.push(emptyIndicesInThisRow);
+		else if (tempScore === Number.MIN_SAFE_INTEGER) moveQuality.lose.push(emptyIndicesInThisRow);
+
+		else if (tempScore === QUAD_OPEN_END_SCORE) moveQuality.good1.push(emptyIndicesInThisRow);
+		else if (tempScore === QUAD_SCORE) moveQuality.good2.push(emptyIndicesInThisRow);
+		else if (tempScore === (2*TRIPLE_SCORE)) moveQuality.good3.push(emptyIndicesInThisRow);
+		else if (tempScore === TRIPLE_SCORE) moveQuality.good4.push(emptyIndicesInThisRow);
+		else if (tempScore === BLOCKED_TRIPLE_SCORE) moveQuality.good5.push(emptyIndicesInThisRow);
+		else if (tempScore === PAIR_SCORE) moveQuality.good6.push(emptyIndicesInThisRow);
+		else if (tempScore === SINGLE_NOT_ON_EDGE_SCORE) moveQuality.good7.push(emptyIndicesInThisRow);
+
+		else if (tempScore === -QUAD_OPEN_END_SCORE) moveQuality.bad1.push(emptyIndicesInThisRow);
+		else if (tempScore === -QUAD_SCORE) moveQuality.bad2.push(emptyIndicesInThisRow);
+		else if (tempScore === (-2*TRIPLE_SCORE)) moveQuality.bad3.push(emptyIndicesInThisRow);
+		else if (tempScore === -TRIPLE_SCORE) moveQuality.bad4.push(emptyIndicesInThisRow);
+		else if (tempScore === -BLOCKED_TRIPLE_SCORE) moveQuality.bad5.push(emptyIndicesInThisRow);
+		else if (tempScore === -PAIR_SCORE) moveQuality.bad6.push(emptyIndicesInThisRow);
+		else if (tempScore === -SINGLE_NOT_ON_EDGE_SCORE) moveQuality.bad7.push(emptyIndicesInThisRow);
+
+		else moveQuality.bad7.push(emptyIndicesInThisRow);
+	}
+	
+	return moveQuality;
 }
 
 const QUADRANT_INDICES = [0, 1, 2, 8, 14, 13, 12, 6];
@@ -394,4 +493,5 @@ module.exports = {
 	RotateGame,
 	Evaluate,
 	FindHighestScoringRows,
+	GetPositionToBlockWin,
 };

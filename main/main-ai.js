@@ -11,20 +11,12 @@ const transpositionLookupAi = require('./ai-10-transposition-lookup');
 const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
 const moveFilteringAi = require('./ai-12-move-filtering');
 
-// const standardAi = require('./AI_Standard');
-// const alphaBetaOnlyAi = require('./AI_Standard_Alpha_Beta');
-// const abMoveOrderingAi = require('./AI_Standard_AB_Move_Ordering');
-// const abMoveOrderingAckDefAi = require('./AI_Standard_AB_Move_OrderingAckDef');
-// const abMoveOrderingAckDefFullAi = require('./AI_Standard_AB_Move_OrderingAckDefFull');
-// const abMoIterativeDeepeningAi = require('./AI_Standard_AB_MO_Iterative_Deepening');
-// const abMoIdTranspositionLookupAi = require('./AI_Standard_AB_MO_ID_Transposition_Lookup');
-
 const PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
 
 // ******************** UPDATABLE OPTIONS ********************
 const CURRENT_TURN = PIECES.BLACK;
 
-const SEARCH_DEPTH = 5;
+const SEARCH_DEPTH = 4;
 // ******************** UPDATABLE OPTIONS ********************
 
 // Track what piece is in location
@@ -38,53 +30,11 @@ function StartConfiguration() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
-	// WHITE Win (depth 1) as White
-	// GamePieces = '1,1,1,1,1,3,1,1,1,1,1,3,1,1,1,1,2,3,1,1,1,1,2,3,1,1,1,2,2,1,1,1,1,1,1,1'.split(',').map(x => parseInt(x));
-	// GamePieces = '1,1,1,1,1,1,1,3,2,1,1,3,2,3,3,3,2,3,1,3,2,2,2,3,1,1,1,1,2,1,1,1,1,1,1,1'.split(',').map(x => parseInt(x));
-
-	// WHITE Win (depth 3) as White
-	// GamePieces = '1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,2,2,3,1,1,1,2,3,2,1,1,1,1,3,2,1,1,1,1,1,3'.split(',').map(x => parseInt(x));
-
-	// Unsure () as Black
-	// GamePieces = '1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,2,2,3,1,1,1,2,3,2,1,1,1,1,3,2,1,1,1,1,1,3'.split(',').map(x => parseInt(x));
-
-	// GamePieces = '1,1,1,1,3,2,2,3,3,2,3,3,1,1,2,2,2,1,2,3,3,2,3,1,3,1,2,3,2,1,1,2,1,3,1,1'.split(',').map(x => parseInt(x));
-	// GamePieces = '1,1,3,1,1,1,1,1,1,1,1,1,2,1,1,1,3,1,2,1,1,3,3,2,2,1,1,1,1,1,2,3,1,1,1,1'.split(',').map(x => parseInt(x));
-
-	// Simple Test Positions as White
-	// GamePieces = '1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1'.split(',').map(x => parseInt(x));
-	// GamePieces = "1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,3,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,3,1,1,3,2,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1".split(',').map(x => parseInt(x));
-
-	// WHITE Win (depth 5) as White
-	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2".split(',').map(x => parseInt(x));
-
-	// GamePieces = "2,3,3,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,1,1,1,1,1,1,3,1,1,1,1,3,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,1,1,3,1,1,1,1,1,3,1,1,3,1,1,2,1,1,1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,1,1,3,1,1,3,1,1,3,1,1,3,1,1,2,1,1,2,2,1,1,1,1,2,1,1,1,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,1,1,3,1,1,3,1,1,2,1,1,3,2,3,3,1,1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,1,1,3,1,1,3,1,1,2,1,1,3,2,3,3,1,1,2,1,3,2,1,1,2,1,1,2,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,2,3,3,1,1,3,1,1,2,1,1,3,2,3,3,1,1,2,1,3,2,1,1,2,1,1,2,1,1,2,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "2,3,3,3,2,3,1,1,3,3,1,3,1,1,3,2,1,2,1,1,1,1,3,2,1,1,1,1,1,2,2,2,2,1,2,3".split(',').map(x => parseInt(x));
-
-	// GamePieces = "3,1,1,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2".split(',').map(x => parseInt(x));
-	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,3,1,1,1,1,1,1,2,1,1,1,1,1,2".split(',').map(x => parseInt(x));
-	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,2,2,3,1,1,1,1,2,2,1,1,1,1,1,2,1,1,1,1,1,3,3,1".split(',').map(x => parseInt(x));
-
 	// Check Transposition Table Using these. Clashing results occur here
 	// GamePieces = "1,1,3,2,1,1,1,1,1,1,2,2,3,3,3,1,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 	// GamePieces = "3,1,1,1,2,1,3,3,1,1,2,1,3,2,3,2,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 
-	// GamePieces = "1,1,2,2,1,3,3,3,1,2,2,3,3,1,2,2,1,1,1,2,1,1,1,1,1,3,1,3,2,1,1,1,1,1,3,1".split(',').map(x => parseInt(x));
-	// GamePieces = "1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,2,3,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1".split(',').map(x => parseInt(x));
-
-	// GamePieces = "1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,2,3,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "1,2,1,1,3,1,1,3,3,2,3,1,1,1,1,2,3,1,1,1,1,3,1,1,1,2,3,2,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "1,1,1,1,3,1,1,3,2,2,3,1,1,3,1,2,3,1,1,1,1,1,2,3,1,2,3,1,2,1,1,3,1,1,2,1".split(',').map(x => parseInt(x));
-
 	GamePieces = "1,3,1,3,1,1,1,3,3,1,2,1,1,1,1,1,1,2,1,1,1,1,3,1,1,2,1,1,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
-	// GamePieces = "1,1,1,2,3,2,1,1,2,1,2,1,1,1,3,3,2,3,2,1,3,1,2,1,3,2,2,1,2,1,3,3,3,1,1,1".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -97,13 +47,12 @@ function main() {
 		console.log(`Depth (${(i+1n).toString()}), Game Tree Size:`, new Intl.NumberFormat('en-AU').format(gameTreeSize.toString()));
 	}
 	
-	
+	// console.log('\nmoveFilteringAi');
+	// moveFilteringAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nmoveOrderingRowScoreAi');
 	// moveOrderingRowScoreAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\nmoveFilteringAi');
-	moveFilteringAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\ntranspositionLookupAi');
-	transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\ntranspositionLookupAi');
+	// transpositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentBetterIterDeepAi');
 	// top75PercentBetterIterDeepAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentNoIterDeepAi');
@@ -118,8 +67,8 @@ function main() {
 	// moveOrderingBestRotationAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ndepthOneResultsAi');
 	// depthOneResultsAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	// console.log('\nalphaBetaAi');
-	// alphaBetaAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nalphaBetaAi');
+	alphaBetaAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nstandardAi');
 	// standardAi(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 

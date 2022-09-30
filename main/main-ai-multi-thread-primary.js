@@ -1,6 +1,6 @@
 const cluster = require('node:cluster');
 // const numCPUs = require('node:os').cpus().length;
-const numCPUs = 12;
+const numCPUs = 1;
 
 const { RotateGame, PrettyResult } = require('./aux-functions');
 // const standardAi = require('./ai-1-normal');
@@ -66,13 +66,20 @@ function main() {
 
 	let totalCalls = 0;
 
+	// Store the search results from the workers
+	const SEARCH_RESULTS = new Map();
+
+	for (let currentDepth = 2; currentDepth <= SEARCH_DEPTH; ++currentDepth) {
+		SEARCH_RESULTS.set(currentDepth, new Map());
+	}
+
 	// Fork Workers
 	for (let workerId = 1; workerId <= numCPUs; workerId++) {
 		cluster.fork();
 
 		cluster.workers[workerId].on('message', ({ msgType, msg }) => {
 			if (msgType === 'log') {
-				console.log(++totalCalls, msg);
+				// console.log(++totalCalls, msg);
 				return;
 			} else if (msgType === 'getMove') {
 				let responseMessage = null;
@@ -84,6 +91,8 @@ function main() {
 				}
 
 				cluster.workers[workerId].send(responseMessage);
+			} else if (msgType === 'moveResult') {
+
 			}
 		});
 	}
@@ -176,8 +185,8 @@ StartConfiguration();
 
 cluster.setupPrimary({
 	exec: path.join(__dirname, 'main-ai-multi-thread-worker.js'),
-	args: [JSON.stringify({ CURRENT_TURN, SEARCH_DEPTH, GamePieces })],
-	silent: true,
+	args: [JSON.stringify({ PIECES, CURRENT_TURN, SEARCH_DEPTH, GamePieces })],
+	silent: false,
 });
 
 main();

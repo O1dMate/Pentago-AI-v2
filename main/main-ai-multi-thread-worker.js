@@ -2,7 +2,7 @@ const cluster = require('node:cluster');
 // const numCPUs = require('node:os').cpus().length;
 // const numCPUs = 1;
 
-// const { RotateGame, PrettyResult } = require('./aux-functions');
+const { RotateGame } = require('./aux-functions');
 // // const standardAi = require('./ai-1-normal');
 // // const alphaBetaAi = require('./ai-2-alpha-beta');
 const depthOneResultsAi = require('./ai-3-depth-one-results');
@@ -203,20 +203,32 @@ function GetNextMove() {
 
 async function main() {
 	let gameValues = JSON.parse(process.argv[2]);
-	GamePieces = gameValues.GamePieces;
+	PIECES = gameValues.PIECES;
 	CURRENT_TURN = gameValues.CURRENT_TURN;
 	SEARCH_DEPTH = gameValues.SEARCH_DEPTH;
+	GamePieces = gameValues.GamePieces;
 
-	let nextMoveResult = await GetNextMove();
+	let nextMove = await GetNextMove();
 	
-	// Continue processing moves until there are none left to process
-	while (nextMoveResult) {
+	// Continue processing moves until there are none left to process (Primary will return null)
+	while (nextMove) {
+		nextMove = JSON.parse(nextMove); // Move Format = [boardIndex, quadrant, rotationDir] = [25, 3, false] = [25, Q4, "Left"]
 
-		process.send({ msgType: 'log', msg: `Worker ${cluster.worker.id}, [${nextMoveResult}]` });
-		nextMoveResult = await GetNextMove();
+		// Modify the Game Board with the move
+		GamePieces[nextMove[0]] = CURRENT_TURN;
+		RotateGame(GamePieces, nextMove[1], nextMove[2]);
+
+		
+
+		// Undo the move from Game Board
+		RotateGame(GamePieces, nextMove[1], !nextMove[2]);
+		GamePieces[nextMove[0]] = PIECES.EMPTY;
+
+		process.send({ msgType: 'log', msg: `Worker ${cluster.worker.id}, [${nextMove}]` });
+		nextMove = await GetNextMove();
 	}
 
-	// process.exit(1);
+	process.exit(1);
 }
 
 main();

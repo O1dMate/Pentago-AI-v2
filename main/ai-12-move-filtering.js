@@ -51,7 +51,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		}
 
 		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
+		eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
 		// if (depth === 4) depthOneResults.forEach(move => eventCallback(move));
 		
 		// Iterative Deepening
@@ -330,4 +330,4 @@ function GetEmptyIndices(game, targetColor) {
 	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
-module.exports = SearchAux;
+module.exports = { SearchAux, GetEmptyIndices };

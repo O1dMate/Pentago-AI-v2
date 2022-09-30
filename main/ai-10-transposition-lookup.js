@@ -285,4 +285,4 @@ function GetEmptyIndices(game, targetColor) {
 	return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
 }
 
-module.exports = SearchAux;
+module.exports = { SearchAux, GetEmptyIndices };

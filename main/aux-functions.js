@@ -424,12 +424,13 @@ function RotateGame(game, quadrant, direction) {
 }
 
 function PrettyResult(result) {
+	if (!result) return 'N/A';
+
 	let niceResults = result.map(x => x);
-	niceResults[1] = niceResults[1] === 0 ? 'Q1' :
-		niceResults[1] === 1 ? 'Q2' :
-			niceResults[1] === 2 ? 'Q3' :
-				'Q4';
-	niceResults[2] = niceResults[2] === false ? 'Left' : 'Right';
+	niceResults[1] = 	niceResults[1] === 0 ? 'Q1' :
+						niceResults[1] === 1 ? 'Q2' :
+						niceResults[1] === 2 ? 'Q3' : 'Q4';
+	niceResults[2] = (niceResults[2] === false) ? 'Left' : 'Right';
 	return niceResults;
 }
 

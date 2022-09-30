@@ -120,4 +120,4 @@ function GetEmptyIndices(game) {
 	return emptyIndexList;
 }
 
-module.exports = SearchAux;
+module.exports = { SearchAux, GetEmptyIndices };

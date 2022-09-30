@@ -202,4 +202,4 @@ function GetEmptyIndices(game, targetColor) {
 	return [...iterativeDeepening, ...validMoves];
 }
 
-module.exports = SearchAux;
+module.exports = { SearchAux, GetEmptyIndices };

@@ -190,4 +190,4 @@ function GetEmptyIndices(game, targetColor) {
 	return validMoves;
 }
 
-module.exports = SearchAux;
+module.exports = { SearchAux, GetEmptyIndices };

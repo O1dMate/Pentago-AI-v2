@@ -205,7 +205,7 @@ async function main() {
 	let gameValues = JSON.parse(process.argv[2]);
 	PIECES = gameValues.PIECES;
 	CURRENT_TURN = gameValues.CURRENT_TURN;
-	SEARCH_DEPTH = gameValues.SEARCH_DEPTH;
+	SEARCH_DEPTH = gameValues.SEARCH_DEPTH - 1; // Subtract 1 because we make a move then perform the search.
 	GamePieces = gameValues.GamePieces;
 
 	let nextMove = await GetNextMove();
@@ -214,13 +214,30 @@ async function main() {
 	while (nextMove) {
 		nextMove = JSON.parse(nextMove); // Move Format = [boardIndex, quadrant, rotationDir] = [25, 3, false] = [25, Q4, "Left"]
 
-		// Modify the Game Board with the move
+		// Modify the Game Board with the move, and update the current turn
 		GamePieces[nextMove[0]] = CURRENT_TURN;
 		RotateGame(GamePieces, nextMove[1], nextMove[2]);
+		CURRENT_TURN = (CURRENT_TURN === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK);
 
-		
+		AI_TO_USE.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES
+		, (msg) => {
+			process.send({ msgType: 'moveResult', msg: {
+				complete: false,
+				move: JSON.stringify(nextMove),
+				results: JSON.stringify(msg),
+			}});
+		}, (msg) => {
+			process.send({
+				msgType: 'moveResult', msg: {
+					complete: true,
+					move: JSON.stringify(nextMove),
+					results: JSON.stringify(msg),
+				}
+			});
+		});
 
-		// Undo the move from Game Board
+		// Undo the move from Game Board and update the current turn
+		CURRENT_TURN = (CURRENT_TURN === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK);
 		RotateGame(GamePieces, nextMove[1], !nextMove[2]);
 		GamePieces[nextMove[0]] = PIECES.EMPTY;
 
@@ -228,7 +245,7 @@ async function main() {
 		nextMove = await GetNextMove();
 	}
 
-	process.exit(1);
+	// process.exit(1);
 }
 
 main();

@@ -1,6 +1,6 @@
 const cluster = require('node:cluster');
 // const numCPUs = require('node:os').cpus().length;
-const numCPUs = 1;
+const numCPUs = 12;
 
 const { RotateGame, PrettyResult } = require('./aux-functions');
 // const standardAi = require('./ai-1-normal');
@@ -22,7 +22,7 @@ const PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
 // ******************** UPDATABLE OPTIONS ********************
 const CURRENT_TURN = PIECES.BLACK;
 
-const SEARCH_DEPTH = 2;
+const SEARCH_DEPTH = 5;
 const AI_TO_USE = depthOneResultsAi;
 // ******************** UPDATABLE OPTIONS ********************
 
@@ -68,9 +68,11 @@ function main() {
 
 	// Store the search results from the workers
 	const SEARCH_RESULTS = new Map();
+	const SEARCH_DEPTH_COMPLETE = [{ size: 0 }, { size: 0 }];
 
 	for (let currentDepth = 2; currentDepth <= SEARCH_DEPTH; ++currentDepth) {
 		SEARCH_RESULTS.set(currentDepth, new Map());
+		SEARCH_DEPTH_COMPLETE.push(new Map());
 	}
 
 	// Fork Workers
@@ -92,14 +94,36 @@ function main() {
 
 				cluster.workers[workerId].send(responseMessage);
 			} else if (msgType === 'moveResult') {
+				let move = msg.move;
+				let moveResult = -JSON.parse(msg.results).result;
+				let moveDepth = JSON.parse(msg.results).depth + 1; // Adding one here because we already made the first move before starting the search.
 
+				SEARCH_RESULTS.get(moveDepth).set(move, moveResult);
+
+				if (msg.complete) SEARCH_DEPTH_COMPLETE[moveDepth].set(move, true);
+
+				// console.log(moveDepth, move, moveResult);
+				let sumOfPreviousDepthsCompleted = SEARCH_DEPTH_COMPLETE.slice(0,moveDepth).map(x => x.size).reduce((accum, cur) => accum+cur, 0);
+				
+				if (SEARCH_RESULTS.get(moveDepth).size + sumOfPreviousDepthsCompleted === numberOfInitialMovesToSearch) {
+					console.log(moveDepth);
+					console.log(SEARCH_RESULTS.get(2).size, SEARCH_RESULTS.get(3).size, SEARCH_RESULTS.get(4).size);
+					console.log(SEARCH_DEPTH_COMPLETE.map(x => x.size));
+				}
+
+				// for (let currentDepth = 2; currentDepth <= SEARCH_DEPTH-1; ++currentDepth) {
+				// 	SEARCH_RESULTS.set(currentDepth, new Map());
+				// 	SEARCH_DEPTH_COMPLETE.set(currentDepth, new Map());
+				// }
 			}
 		});
 	}
 
-	// setTimeout(() => {
-	// 	cluster.workers[1].send('test message');
-	// }, 2000);
+	setTimeout(() => {
+		console.log();
+		console.log(SEARCH_RESULTS.get(2).size, SEARCH_RESULTS.get(3).size, SEARCH_RESULTS.get(4).size);
+		console.log(SEARCH_DEPTH_COMPLETE.map(x => x.size));
+	}, 5000);
 
 	// console.log(listOfMovesToSearch);
 	// console.log(numberOfInitialMovesToSearch);
@@ -186,7 +210,7 @@ StartConfiguration();
 cluster.setupPrimary({
 	exec: path.join(__dirname, 'main-ai-multi-thread-worker.js'),
 	args: [JSON.stringify({ PIECES, CURRENT_TURN, SEARCH_DEPTH, GamePieces })],
-	silent: false,
+	silent: true,
 });
 
 main();

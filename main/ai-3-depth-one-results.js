@@ -16,7 +16,6 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 	searchCalls = 0n;
 	let depth = 1;
 	let depthTime = 0;
-
 	let resultObj = {};
 
 	while (depth <= SEARCH_DEPTH) {
@@ -50,7 +49,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		}
 
 		eventCallback(resultObj, `Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		// eventCallback(resultObj, `Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
+		eventCallback(resultObj, `Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
 		// depthOneResults.forEach(move => eventCallback({}, move));
 		
 		depth++;

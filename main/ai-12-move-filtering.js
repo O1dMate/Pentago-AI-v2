@@ -3,6 +3,8 @@ const { PrettyResult, DrawGame, RotateGame, Evaluate, GetPositionToBlockWin } = 
 let SEARCH_DEPTH;
 let PIECES;
 
+const alphaBetaStartDepth = 2;
+
 let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
@@ -24,36 +26,45 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 	searchCalls = 0n;
 	let depth = 1;
 	let depthTime = 0;
+	let resultObj = {};
 
 	while (depth <= SEARCH_DEPTH) {
 		TRANSPOSITION_MAX_DEPTH = depth - 1;
 		searchCalls = 0n;
 		originalDepth = depth;
 
+		bestMoveChosen = {};
+
 		depthTime = Date.now();
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
 		depthTime = Date.now() - depthTime;
 
+		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.sort((a, b) => a.score < b.score ? 1 : -1);
+		depthOneResults.forEach(move => {
+			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
+		});
+
+		resultObj = { depthOneResults, result, depth, bestIndex, searchCalls: searchCalls.toString(), depthTime };
 
 		let numberFormatter = new Intl.NumberFormat('en-AU');
 		let searchCallsStr = numberFormatter.format(searchCalls.toString());
 		depthTime = numberFormatter.format(depthTime.toString());
 
 		if (result === Number.MIN_SAFE_INTEGER) {
-			completeCallback({}, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-			break;
+			completeCallback(resultObj, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+			return bestIndex;
 		}
 
 		if (result === Number.MAX_SAFE_INTEGER) {
-			completeCallback({}, `Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-			break;
+			completeCallback(resultObj, `Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+			return bestIndex;
 		}
 
-		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
+		eventCallback(resultObj, `Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+		// eventCallback(resultObj, `Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
 		// if (depth === 4) depthOneResults.forEach(move => eventCallback(move));
-		
+
 		// Iterative Deepening
 		let maxScoreForSearch = depthOneResults[0].score;
 		let movesThatYieldMaxScore = depthOneResults.filter(move => move.score === maxScoreForSearch);
@@ -89,14 +100,6 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 			// Remove Duplicates
 			iterativeDeepeningResults = [...new Set(iterativeDeepeningResults)];
 		});
-		// movesThatYieldMaxScore.forEach(move => eventCallback(move));
-
-		// Store all the initial moves that will lead to a loss. These moves will not be played.
-		depthOneResults.forEach(move => {
-			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
-		});
-
-		// console.log('TRANSPOSITION_TABLE Size:', TRANSPOSITION_TABLE.size);
 		
 		depth++;
 		depthOneResults = [];
@@ -105,6 +108,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 	}
 
+	completeCallback(resultObj, `Depth (${SEARCH_DEPTH}), Search Complete:`, PrettyResult(bestIndex));
 	return bestIndex;
 }
 
@@ -114,7 +118,6 @@ let depthOneMovesToAvoid = {};
 function Search(game, depth, player, currentTurn, alpha, beta) {
 	// Transposition Lookup - Create Key
 	let gameKey;
-
 	if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH) gameKey = game.toString();
 
 	// if (resultAlreadyExists !== undefined) {
@@ -144,7 +147,7 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 		return currentGameScore;
 	}
 
-	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
+	let nextTurn = (currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK);
 
 	// Transposition Lookup - Check for Existing result
 	let resultAlreadyExists;
@@ -169,7 +172,16 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
 			// Modify the Game Board with the move
-			game[listOfMoves[i][0]] = currentTurn;
+			try {
+				game[listOfMoves[i][0]] = currentTurn;
+			} catch (err) {
+				console.log('ERROR');
+				console.log({i});
+				console.log(listOfMoves[i]);
+				console.log(listOfMoves);
+				console.error(err);
+				process.exit(0);
+			}
 			RotateGame(game, listOfMoves[i][1], listOfMoves[i][2]);
 			let evaluationOfMove = Search(game, depth - 1, player, nextTurn, alpha, beta);
 
@@ -187,8 +199,8 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
 			bestScore = Math.max(bestScore, evaluationOfMove);
 
-			// Only do Alpha-Beta after depth 2
-			if (originalDepth > 2) {
+			// Only do Alpha-Beta after a certain depth
+			if (originalDepth > alphaBetaStartDepth) {
 				if (bestScore >= beta) break;
 				alpha = Math.max(alpha, bestScore);
 			}
@@ -214,11 +226,10 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			// Undo the move from Game Board
 			RotateGame(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = PIECES.EMPTY;
-
 			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
 
-			// Only do Alpha-Beta after depth 2
-			if (originalDepth > 2) {
+			// Only do Alpha-Beta after a certain depth
+			if (originalDepth > alphaBetaStartDepth) {
 				if (bestScore <= alpha) break;
 				beta = Math.min(beta, bestScore);
 			}
@@ -237,7 +248,9 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 function GetEmptyIndices(game, targetColor) {
 	let validMoves = [];
 	let priorityMoves = [];
-	let iterativeDeepening = new Array(iterativeDeepeningResults.length);
+	let iterativeDeepening = [];
+	// let iterativeDeepening = new Array(iterativeDeepeningResults.length);
+	// let iterativeDeepeningIndex = 0;
 
 	let evalScore = 0;
 
@@ -246,7 +259,7 @@ function GetEmptyIndices(game, targetColor) {
 	let positionToBlockWin;
 	let moveId = 0;
 
-	if (originalScore < -800) {
+	if (originalScore < -1500) {
 		// console.log(originalScore);
 		positionToBlockWin = GetPositionToBlockWin(game, targetColor);
 		// console.log({ originalScore });
@@ -294,7 +307,7 @@ function GetEmptyIndices(game, targetColor) {
 			moveId = (1000 * i) +  r;
 			
 			if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
-				iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
+				iterativeDeepening.push([i, r % 4, (r > 3)]);
 			}
 			else {
 				RotateGame(game, r % 4, (r > 3));

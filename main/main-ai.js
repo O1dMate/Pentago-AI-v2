@@ -1,22 +1,24 @@
-const standardAi = require('./ai-1-normal');
-const alphaBetaAi = require('./ai-2-alpha-beta');
+// const standardAi = require('./ai-1-normal');
+// const alphaBetaAi = require('./ai-2-alpha-beta');
 const depthOneResultsAi = require('./ai-3-depth-one-results');
-const moveOrderingBestRotationAi = require('./ai-4-move-ordering-best-rotation');
-const fullScoreMovesAi = require('./ai-5-move-ordering-full-score-moves');
-const iterativeDeepeningAi = require('./ai-6-iterative-deepening');
-const top75PercentAi = require('./ai-7-top-75-percent');
-const top75PercentNoIterDeepAi = require('./ai-8-top-75-percent-no-iter-deep');
-const top75PercentBetterIterDeepAi = require('./ai-9-top-75-percent-better-iter-deep');
+// const moveOrderingBestRotationAi = require('./ai-4-move-ordering-best-rotation');
+// const fullScoreMovesAi = require('./ai-5-move-ordering-full-score-moves');
+// const iterativeDeepeningAi = require('./ai-6-iterative-deepening');
+// const top75PercentAi = require('./ai-7-top-75-percent');
+// const top75PercentNoIterDeepAi = require('./ai-8-top-75-percent-no-iter-deep');
+// const top75PercentBetterIterDeepAi = require('./ai-9-top-75-percent-better-iter-deep');
 const transpositionLookupAi = require('./ai-10-transposition-lookup');
-const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
+// const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
 const moveFilteringAi = require('./ai-12-move-filtering');
+// const nullMoveCustomAi = require('./ai-13-null-move-custom');
+const betterMoveOrderingScoringAi = require('./ai-14-better-move-ordering-scoring');
 
 const PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
 
 // ******************** UPDATABLE OPTIONS ********************
 const CURRENT_TURN = PIECES.BLACK;
 
-const SEARCH_DEPTH = 4;
+const SEARCH_DEPTH = 13;
 // ******************** UPDATABLE OPTIONS ********************
 
 // Track what piece is in location
@@ -35,6 +37,7 @@ function StartConfiguration() {
 	// GamePieces = "3,1,1,1,2,1,3,3,1,1,2,1,3,2,3,2,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 
 	GamePieces = "1,3,1,3,1,1,1,3,3,1,2,1,1,1,1,1,1,2,1,1,1,1,3,1,1,2,1,1,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,3,2,1,1,1,1,1,1,2,2,3,3,3,1,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -47,12 +50,16 @@ function main() {
 		console.log(`Depth (${(i+1n).toString()}), Game Tree Size:`, new Intl.NumberFormat('en-AU').format(gameTreeSize.toString()));
 	}
 	
-	// console.log('\nmoveFilteringAi');
-	// moveFilteringAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nbetterMoveOrderingScoringAi');
+	betterMoveOrderingScoringAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
+	// console.log('\nnullMoveCustomAi');
+	// nullMoveCustomAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	console.log('\nmoveFilteringAi');
+	moveFilteringAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
 	// console.log('\nmoveOrderingRowScoreAi');
 	// moveOrderingRowScoreAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntranspositionLookupAi');
-	// transpositionLookupAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// transpositionLookupAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
 	// console.log('\ntop75PercentBetterIterDeepAi');
 	// top75PercentBetterIterDeepAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\ntop75PercentNoIterDeepAi');

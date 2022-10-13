@@ -1,7 +1,9 @@
-const { PrettyResult, DrawGame, RotateGame, Evaluate, FindHighestScoringRows } = require('./aux-functions');
+const { PrettyResult, DrawGame, RotateGame, Evaluate, GetPositionToBlockWin } = require('./aux-functions');
 
 let SEARCH_DEPTH;
 let PIECES;
+
+const alphaBetaStartDepth = 3;
 
 let originalDepth = 1;
 let bestIndex = -1;
@@ -14,43 +16,7 @@ let TRANSPOSITION_TABLE = new Map();
 let TRANSPOSITION_MAX_DEPTH = 0;
 const TRANSPOSITION_MAX_SIZE = 6_000_000;
 
-// Stores the BoardIndices For Before and After a rotation. 0 = Q1L, 1 = Q2L, etc
-// Each Sub-Object contains the mapping of new index to the old index (before the rotation).
-// E.g.1. BeforeAfterRotationLookup[0][6] = 1. This means that if we do a Q1L rotation, then what ever is at index 6 was previously at index 1.
-// E.g.2. BeforeAfterRotationLookup[0][8] = 13. This means that if we do a Q1L rotation, then what ever is at index 8 was previously at index 13.
-const BeforeAfterRotationLookup = {
-	0: {},
-	1: {},
-	2: {},
-	3: {},
-	4: {},
-	5: {},
-	6: {},
-	7: {},
-};
-
-// Build the lookup table BeforeAfterRotationLookup.
-function _BuildBeforeAfterRotationTable() {
-
-	let newGame = (new Array(36)).fill('E');
-
-	for (let boardIndex = 0; boardIndex < newGame.length; ++boardIndex) {
-		newGame[boardIndex] = 'X';
-
-		for (let rotationIndex = 0; rotationIndex < 8; ++rotationIndex) {
-			RotateGame(newGame, rotationIndex % 4, (rotationIndex > 3));
-
-			let newBoardIndex = newGame.indexOf('X');
-			BeforeAfterRotationLookup[rotationIndex][newBoardIndex] = boardIndex;
-	
-			RotateGame(newGame, rotationIndex % 4, !(rotationIndex > 3));
-		}
-
-		newGame[boardIndex] = 'E';
-	}
-}
-
-_BuildBeforeAfterRotationTable();
+let bestMoveChosen = {};
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
@@ -68,6 +34,8 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		TRANSPOSITION_MAX_DEPTH = depth - 1;
 		searchCalls = 0n;
 		originalDepth = depth;
+
+		bestMoveChosen = {};
 
 		depthTime = Date.now();
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
@@ -96,13 +64,15 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		}
 
 		eventCallback(resultObj, `Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
+		eventCallback(resultObj, `Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`);
 		// if (depth === 4) depthOneResults.forEach(move => eventCallback(move));
 		
+		// console.log(bestMoveChosen);
+
 		// Iterative Deepening
 		let maxScoreForSearch = depthOneResults[0].score;
 		let movesThatYieldMaxScore = depthOneResults.filter(move => move.score === maxScoreForSearch);
-		iterativeDeepeningResults = {};
+		iterativeDeepeningResults = [];
 		movesThatYieldMaxScore.forEach(move => {
 			let arrayMove = JSON.parse(move.move);
 			let moveId = (1000 * arrayMove[0]) + (arrayMove[1]) + (arrayMove[2] ? 4 : 0);
@@ -152,7 +122,6 @@ let depthOneMovesToAvoid = {};
 function Search(game, depth, player, currentTurn, alpha, beta) {
 	// Transposition Lookup - Create Key
 	let gameKey;
-
 	if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH) gameKey = game.toString();
 
 	// if (resultAlreadyExists !== undefined) {
@@ -175,18 +144,21 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 		return currentGameScore;
 	}
 
-	let listOfMoves = GetEmptyIndices(game, currentTurn, depth);
+	let listOfMoves = GetEmptyIndices(game, currentTurn);
 
 	if (listOfMoves.length === 0) {
 		if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH && TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, currentGameScore);
 		return currentGameScore;
 	}
 
-	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
+	let nextTurn = (currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK);
 
 	// Transposition Lookup - Check for Existing result
 	let resultAlreadyExists;
 	if (originalDepth - depth < TRANSPOSITION_MAX_DEPTH) resultAlreadyExists = TRANSPOSITION_TABLE.get(gameKey);
+
+	// Keeping track of which index was selected in the list of generated moves.
+	let currentBestIndex = -1;
 
 	if (player === currentTurn) {
 		let bestScore = Number.MIN_SAFE_INTEGER;
@@ -223,16 +195,31 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			}
 
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
+			if (evaluationOfMove > bestScore) currentBestIndex = i;
 			bestScore = Math.max(bestScore, evaluationOfMove);
 
-			// Only do Alpha-Beta after depth 2
-			if (originalDepth > 2) {
+			// Only do Alpha-Beta after a certain depth
+			if (originalDepth > alphaBetaStartDepth) {
 				if (bestScore >= beta) break;
 				alpha = Math.max(alpha, bestScore);
 			}
 		}
 
 		if (TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, bestScore);
+		
+		if (!bestMoveChosen.hasOwnProperty(currentBestIndex)) bestMoveChosen[currentBestIndex] = 0;
+		bestMoveChosen[currentBestIndex] += 1;
+
+		// if (currentBestIndex > 50) {
+		// 	console.log({ currentBestIndex });
+		// 	console.log('Game Score', Evaluate(game, currentTurn));
+		// 	console.log('Current Turn:', currentTurn === PIECES.WHITE ? 'WHITE' : 'BLACK');
+		// 	console.log('Move List:', listOfMoves.slice(0, 10));
+		// 	console.log('Best Move:', listOfMoves[currentBestIndex]);
+		// 	DrawGame(game);
+		// 	process.exit(0);
+		// }
+
 		return bestScore;
 	} else {
 		let bestScore = Number.MAX_SAFE_INTEGER;
@@ -252,11 +239,11 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			// Undo the move from Game Board
 			RotateGame(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = PIECES.EMPTY;
-
+			if (evaluationOfMove < bestScore) currentBestIndex = i;
 			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
 
-			// Only do Alpha-Beta after depth 2
-			if (originalDepth > 2) {
+			// Only do Alpha-Beta after a certain depth
+			if (originalDepth > alphaBetaStartDepth) {
 				if (bestScore <= alpha) break;
 				beta = Math.min(beta, bestScore);
 			}
@@ -268,151 +255,230 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 		}
 
 		if (TRANSPOSITION_TABLE.size < TRANSPOSITION_MAX_SIZE) TRANSPOSITION_TABLE.set(gameKey, bestScore);
+		
+		if (!bestMoveChosen.hasOwnProperty(currentBestIndex)) bestMoveChosen[currentBestIndex] = 0;
+		bestMoveChosen[currentBestIndex] += 1;
+
+		// if (currentBestIndex > 50) {
+		// 	console.log({ currentBestIndex });
+		// 	console.log('Current Turn:', currentTurn === PIECES.WHITE ? 'WHITE' : 'BLACK');
+		// 	console.log('Move List:', listOfMoves.slice(0, 10));
+		// 	console.log('Best Move:', listOfMoves[currentBestIndex]);
+		// 	DrawGame(game);
+		// }
+
 		return bestScore;
 	}
 }
 
-function GetEmptyIndices(game, targetColor, depth) {
+function GetEmptyIndices(game, targetColor) {
+	let gameScore = Evaluate(game, targetColor);
+
+	if (gameScore < -2000) {
+		return GetEmptyIndicesDef(game, targetColor, gameScore);
+	} else {
+		return GetEmptyIndicesNorm(game, targetColor, gameScore);
+	}
+}
+
+function GetEmptyIndicesNorm(game, targetColor, gameScore) {
 	let validMoves = [];
-	// let iterativeDeepening = new Array(iterativeDeepeningResults.length);
+	let priorityMoves = [];
+	let iterativeDeepening = [];
 
-	// FindHighestScoringRows(game, targetColor);
-	// DrawGame(game);
+	let evalScore = 0;
 
-	let movesToPerform = {
-		level1: [],
-		level2: [],
-		level3: [],
-		level4: [],
-		level5: [],
-		level6: [],
-		level7: [],
-	};
-	
-	// Determine which rotation is likely to be best
-	for (let i = 0; i < 8; ++i) {
-		RotateGame(game, i % 4, (i > 3));
-		
-		// console.log();
-		let moveQuality = FindHighestScoringRows(game, targetColor);
-		
-		// console.log(moveQuality);
-		// DrawGame(game);
+	let originalScore = gameScore;
+	let scoreLookup = new Map();
+	let positionToBlockWin;
+	let moveId = 0;
 
-		RotateGame(game, i % 4, !(i > 3));
-		
-		// let movesToProcess = [];
+	for (let i = 0; i < game.length; ++i) {
+		if (game[i] !== PIECES.EMPTY) continue;
+		if (positionToBlockWin && positionToBlockWin.has(i)) continue;
 
-		// Rotation results in a lose. Exclude all these moves immediately
-		if (moveQuality.lose.length > 0) continue;
-		// Rotation results in a win.
-		else if (moveQuality.win.length > 0) {
-			let winningIndex = BeforeAfterRotationLookup[i][moveQuality.win[0][0]];
-			return [[winningIndex, i%4, i>3]];
+		game[i] = targetColor;
+
+		for (let r = 0; r < 8; ++r) {
+			moveId = (1000 * i) + r;
+
+			if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
+				iterativeDeepening.push([i, r % 4, (r > 3)]);
+			}
+			else {
+				RotateGame(game, r % 4, (r > 3));
+				evalScore = Evaluate(game, targetColor);
+				RotateGame(game, r % 4, !(r > 3));
+
+				// Only search moves that result in a better position after the move.
+				if (originalScore < 0 && evalScore < originalScore) continue;
+
+				if (evalScore === Number.MAX_SAFE_INTEGER) {
+					priorityMoves.unshift([i, r % 4, (r > 3)]);
+				} else if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
+					scoreLookup.set(moveId, evalScore);
+					validMoves.push([i, r % 4, (r > 3)]);
+				}
+			}
+
 		}
 
-		if (moveQuality.good1.length > 0) movesToPerform.level1.push(...moveQuality.good1.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad1.length > 0) movesToPerform.level1.push(...moveQuality.bad1.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		game[i] = PIECES.EMPTY;
+	}
 
-		if (moveQuality.good2.length > 0) movesToPerform.level2.push(...moveQuality.good2.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad2.length > 0) movesToPerform.level2.push(...moveQuality.bad2.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+	validMoves.sort((a, b) => {
+		let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+		let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
 
-		if (moveQuality.good3.length > 0) movesToPerform.level3.push(...moveQuality.good3.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad3.length > 0) movesToPerform.level3.push(...moveQuality.bad3.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+		return scoreA > scoreB ? -1 : 1;
+	});
 
-		if (moveQuality.good4.length > 0) movesToPerform.level4.push(...moveQuality.good4.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad4.length > 0) movesToPerform.level4.push(...moveQuality.bad4.flat().map(index => 100*i + BeforeAfterRotationLookup[i][index]));
+	if (iterativeDeepening.length > 1) {		
+		iterativeDeepening.sort((a,b) => {
+			let scoreA = iterativeDeepeningResults.indexOf((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
+			let scoreB = iterativeDeepeningResults.indexOf((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+			
+			return scoreA > scoreB ? 1 : -1;
+		});
 
-		if (moveQuality.good5.length > 0) movesToPerform.level5.push(...moveQuality.good5.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad5.length > 0) movesToPerform.level5.push(...moveQuality.bad5.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
-		
-		if (moveQuality.good6.length > 0) movesToPerform.level6.push(...moveQuality.good6.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad6.length > 0) movesToPerform.level6.push(...moveQuality.bad6.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
-
-		if (moveQuality.good7.length > 0) movesToPerform.level7.push(...moveQuality.good7.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
-		if (moveQuality.bad7.length > 0) movesToPerform.level7.push(...moveQuality.bad7.flat().map(index => 100 * i + BeforeAfterRotationLookup[i][index]));
+		validMoves = [...iterativeDeepening, ...priorityMoves, ...validMoves];
 	}
 	
+	validMoves = [...priorityMoves, ...validMoves];
+
+	// Only return the top 75% 
+	return validMoves.slice(0, Math.ceil(validMoves.length * 0.75));
+}
+
+function GetEmptyIndicesDef(game, targetColor, gameScore) {
+	let validMoves = [];
+	// let priorityMoves = [];
+	// let iterativeDeepening = new Array(iterativeDeepeningResults.length);
 	
-	validMoves = [
-		...movesToPerform.level1.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level2.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level3.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level4.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level5.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level6.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-		...movesToPerform.level7.map(moveIndex => {return [moveIndex%100, Math.floor(moveIndex/100)%4, Math.floor(moveIndex/100) > 3]}),
-	];
+	let evalScore = 0;
+	let originalScore = gameScore / 1000;
+	let scoreLookup = new Map();
+	let scoreLookupNoRotation = new Map();
+	// let positionToBlockWin;
+	// let moveId = 0;
+
+	// console.log({ originalScore });
+
+	let doubleMoveForOpponentScores = _GetMovesThatWin(game, (targetColor === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK), originalScore);
 	
-	// if (originalDepth === 2 && depth === 1) {
+	// let rotationScoreLookup = new Map();
+	// DrawGame(game);
 
-	// 	for (let i = 0; i < 8; ++i) {
-	// 		RotateGame(game, i % 4, (i > 3));
+	// // Determine which rotation is likely to be best
+	// for (let i = 0; i < 8; ++i) {
+	// 	RotateGame(game, i % 4, (i > 3));
 
-	// 		// console.log();
-	// 		let moveQuality = FindHighestScoringRows(game, targetColor);
-	// 		console.log(moveQuality);
-	// 		DrawGame(game);
+	// 	// Only include the rotation if it doesn't make the player lose, or get into a losing position (4 in a row with open ends)
+	// 	evalScore = Evaluate(game, targetColor) / 1000;
+	// 	rotationScoreLookup.set(i, evalScore - originalScore);
+	// 	// console.log(i, evalScore - originalScore);
+	// 	// if (evalScore > Number.MIN_SAFE_INTEGER) {
+	// 	// }
 
-	// 		RotateGame(game, i % 4, !(i > 3));
-	// 	}
-
-		// console.log(movesToPerform);
-		// console.log(validMoves);
-		// DrawGame(game);
-	
-		// process.exit(0);
+	// 	RotateGame(game, i % 4, !(i > 3));
 	// }
 
-	
-	return validMoves.slice(0, Math.ceil(validMoves.length * 0.75));;
+	// console.log();
 
-	// let evalScore = 0;
+	for (let i = 0; i < game.length; ++i) {
+		if (game[i] !== PIECES.EMPTY) continue;
+		game[i] = targetColor;
 
-	// let originalScore = Evaluate(game, targetColor);
-	// let scoreLookup = new Map();
-	// let moveId = 0;
+		scoreLookupNoRotation.set(i, (Evaluate(game, targetColor) / 1000) - originalScore);
+
+		for (let r = 0; r < 8; ++r) {
+			moveId = (1000 * i) + r;
+
+			RotateGame(game, r % 4, (r > 3));
+			evalScore = Evaluate(game, targetColor) / 1000;
+			RotateGame(game, r % 4, !(r > 3));
+
+			scoreLookup.set(moveId, evalScore - originalScore);
+
+			validMoves.push([i, r % 4, (r > 3)]);
+		}
+
+		game[i] = PIECES.EMPTY;
+	}
 
 	// for (let i = 0; i < game.length; ++i) {
 	// 	if (game[i] !== PIECES.EMPTY) continue;
 
 	// 	game[i] = targetColor;
-
-	// 	for (let r = 0; r < 8; ++r) {
-	// 		moveId = (1000 * i) +  r;
-			
-	// 		if (iterativeDeepeningResults.length > 0 && iterativeDeepeningResults.includes(moveId)) {
-	// 			iterativeDeepening[iterativeDeepeningResults.indexOf(moveId)] = [i, r % 4, (r > 3)];
-	// 		}
-	// 		else {
-	// 			RotateGame(game, r % 4, (r > 3));
-	// 			evalScore = Evaluate(game, targetColor);
-	// 			RotateGame(game, r % 4, !(r > 3));
-				
-	// 			// Only search moves that result in a better position after the move.
-	// 			// if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000) && evalScore > originalScore) {
-	// 			if (evalScore > (Number.MIN_SAFE_INTEGER + 2_000_000)) {
-	// 				scoreLookup.set(moveId, evalScore);
-	// 				validMoves.push([i, r%4, (r > 3)]);
-	// 			}
-	// 		}
-
-	// 	}
-
+	// 	evalScore = Evaluate(game, targetColor) / 1000;
 	// 	game[i] = PIECES.EMPTY;
+
+	// 	evalScore = evalScore - originalScore;
+
+	// 	validMoves.push([i, 0, false]);
+	// 	validMoves.push([i, 1, false]);
+	// 	validMoves.push([i, 2, false]);
+	// 	validMoves.push([i, 3, false]);
+	// 	validMoves.push([i, 0, true]);
+	// 	validMoves.push([i, 1, true]);
+	// 	validMoves.push([i, 2, true]);
+	// 	validMoves.push([i, 3, true]);
+
+	// 	scoreLookup.set(i, evalScore);
+	// 	// console.log(i, evalScore);
 	// }
 
-	// validMoves.sort((a,b) => {
-	// 	let scoreA = scoreLookup.get((1000 * a[0]) + a[1] + (a[2] ? 4 : 0));
-	// 	let scoreB = scoreLookup.get((1000 * b[0]) + b[1] + (b[2] ? 4 : 0));
+	// let aaa = 0.6;
+	// let bbb = 0.3;
+	// let ccc = 0.1;
 
-	// 	return scoreA > scoreB ? -1 : 1;
+	// let aaa = 0.125;
+	// let bbb = 0.75;
+	// let ccc = 0.125;
+
+	let scoreA = 0;
+	let scoreB = 0;
+
+	validMoves.sort((a,b) => {
+		scoreA = scoreLookupNoRotation.get(a[0]) + doubleMoveForOpponentScores.get(a[0]) + scoreLookup.get(a[1] + (a[2] ? 4 : 0));
+		scoreB = scoreLookupNoRotation.get(b[0]) + doubleMoveForOpponentScores.get(b[0]) + scoreLookup.get(b[1] + (b[2] ? 4 : 0));
+
+		// let scoreA = aaa*scoreLookupNoRotation.get(a[0]) + bbb*doubleMoveForOpponentScores.get(a[0]) + ccc*scoreLookup.get(1000*a[0] + a[1] + (a[2] ? 4 : 0));
+		// let scoreB = aaa*scoreLookupNoRotation.get(b[0]) + bbb*doubleMoveForOpponentScores.get(b[0]) + ccc*scoreLookup.get(1000*b[0] + b[1] + (b[2] ? 4 : 0));
+
+		// let scoreA = rotationScoreLookup.get(a[1] + (a[2] ? 4 : 0)) + (originalScore < 0 ? doubleMoveForOpponentScores.get(a[0]) : scoreLookup.get(a[0]));
+		// let scoreB = rotationScoreLookup.get(b[1] + (b[2] ? 4 : 0)) + (originalScore < 0 ? doubleMoveForOpponentScores.get(b[0]) : scoreLookup.get(b[0]));
+
+		return scoreA > scoreB ? -1 : 1;
+	});
+
+	// validMoves.forEach(move => {
+	// 	let scoreA = scoreLookupNoRotation.get(move[0]) + doubleMoveForOpponentScores.get(move[0]) + scoreLookup.get(1000 * move[0] + move[1] + (move[2] ? 4 : 0));
+	// 	console.log(move, scoreA)
 	// });
 
-	// validMoves = [...iterativeDeepening, ...validMoves];
+	// console.log(doubleMoveForOpponentScores);
+	// console.log(validMoves);
 
-	// // Only return the top 75% 
-	// return validMoves.slice(0, Math.ceil(validMoves.length*0.75));
+	// process.exit(0);
+	return validMoves.slice(0, Math.ceil(validMoves.length * 0.75));
+}
+
+function _GetMovesThatWin(game, targetColor, originalScore) {
+	let indexScores = new Map();
+	let evalScore = 0;
+
+	for (let i = 0; i < game.length; ++i) {
+		if (game[i] !== PIECES.EMPTY) continue;
+
+		game[i] = targetColor;
+		evalScore = Evaluate(game, targetColor) / 1000;
+		game[i] = PIECES.EMPTY;
+
+		indexScores.set(i, evalScore + originalScore);
+	}
+
+	return indexScores;
 }
 
 module.exports = { SearchAux, GetEmptyIndices };

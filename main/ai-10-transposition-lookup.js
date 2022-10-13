@@ -24,6 +24,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 	searchCalls = 0n;
 	let depth = 1;
 	let depthTime = 0;
+	let resultObj = {};
 
 	while (depth <= SEARCH_DEPTH) {
 		TRANSPOSITION_MAX_DEPTH = depth - 1;
@@ -34,23 +35,29 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
 		depthTime = Date.now() - depthTime;
 
+		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.sort((a, b) => a.score < b.score ? 1 : -1);
+		depthOneResults.forEach(move => {
+			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
+		});
+
+		resultObj = { depthOneResults, result, depth, bestIndex, searchCalls: searchCalls.toString(), depthTime };
 
 		let numberFormatter = new Intl.NumberFormat('en-AU');
 		let searchCallsStr = numberFormatter.format(searchCalls.toString());
 		depthTime = numberFormatter.format(depthTime.toString());
 
 		if (result === Number.MIN_SAFE_INTEGER) {
-			completeCallback({}, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-			break;
+			completeCallback(resultObj, `Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+			return bestIndex;
 		}
 
 		if (result === Number.MAX_SAFE_INTEGER) {
-			completeCallback({}, `Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
-			break;
+			completeCallback(resultObj, `Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+			return bestIndex;
 		}
 
-		eventCallback(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+		eventCallback(resultObj, `Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 		// eventCallback(`Moves that don't end in a loss: ${depthOneResults.filter(move => move.score !== Number.MIN_SAFE_INTEGER).length}`)
 		// if (depth === 4) depthOneResults.forEach(move => eventCallback(move));
 		
@@ -89,14 +96,6 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 			// Remove Duplicates
 			iterativeDeepeningResults = [...new Set(iterativeDeepeningResults)];
 		});
-		// movesThatYieldMaxScore.forEach(move => eventCallback(move));
-
-		// Store all the initial moves that will lead to a loss. These moves will not be played.
-		depthOneResults.forEach(move => {
-			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
-		});
-
-		// console.log('TRANSPOSITION_TABLE Size:', TRANSPOSITION_TABLE.size);
 		
 		depth++;
 		depthOneResults = [];
@@ -105,6 +104,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 	}
 
+	completeCallback(resultObj, `Depth (${SEARCH_DEPTH}), Search Complete:`, PrettyResult(bestIndex));
 	return bestIndex;
 }
 

@@ -13,20 +13,20 @@ const COL_INDICES = [[0, 6, 12, 18, 24, 30], [1, 7, 13, 19, 25, 31], [2, 8, 14, 
 const DIAGONAL_INDICES = [[6, 13, 20, 27, 34], [0, 7, 14, 21, 28, 35], [1, 8, 15, 22, 29], [24, 19, 14, 9, 4], [30, 25, 20, 15, 10, 5], [31, 26, 21, 16, 11]];
 
 // Read the lines from the specified files.Create an Object with each line as a key.
-const QUADS_5 = fs.readFileSync(path.join(__dirname, '../quads-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
-const QUADS_5_OPPONENT = fs.readFileSync(path.join(__dirname, '../quads-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const QUADS_5 = fs.readFileSync(path.join(__dirname, '../../quads-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const QUADS_5_OPPONENT = fs.readFileSync(path.join(__dirname, '../../quads-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
 
-const QUADS_6 = fs.readFileSync(path.join(__dirname, '../quads-6.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
-const QUADS_6_OPPONENT = fs.readFileSync(path.join(__dirname, '../quads-6.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const QUADS_6 = fs.readFileSync(path.join(__dirname, '../../quads-6.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const QUADS_6_OPPONENT = fs.readFileSync(path.join(__dirname, '../../quads-6.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
 
-const TRIPLES_5 = fs.readFileSync(path.join(__dirname, '../triples-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
-const TRIPLES_5_OPPONENT = fs.readFileSync(path.join(__dirname, '../triples-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_5 = fs.readFileSync(path.join(__dirname, '../../triples-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_5_OPPONENT = fs.readFileSync(path.join(__dirname, '../../triples-5.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
 
-const TRIPLES_6_OKAY = fs.readFileSync(path.join(__dirname, '../triples-6-okay.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
-const TRIPLES_6_OKAY_OPPONENT = fs.readFileSync(path.join(__dirname, '../triples-6-okay.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_6_OKAY = fs.readFileSync(path.join(__dirname, '../../triples-6-okay.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_6_OKAY_OPPONENT = fs.readFileSync(path.join(__dirname, '../../triples-6-okay.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
 
-const TRIPLES_6_BEST = fs.readFileSync(path.join(__dirname, '../triples-6-best.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
-const TRIPLES_6_BEST_OPPONENT = fs.readFileSync(path.join(__dirname, '../triples-6-best.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_6_BEST = fs.readFileSync(path.join(__dirname, '../../triples-6-best.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
+const TRIPLES_6_BEST_OPPONENT = fs.readFileSync(path.join(__dirname, '../../triples-6-best.txt'), 'utf-8').split('\n').map(line => line.trim()).filter(line => line).map(line => line.replaceAll('C', '1').replaceAll('O', '2').replaceAll('1', 'O').replaceAll('2', 'C')).reduce((accum, cur) => { return { ...accum, [cur]: true } }, {});
 
 const SINGLE_NOT_ON_EDGE_SCORE = 2;
 const PAIR_SCORE = 10;
@@ -436,7 +436,7 @@ function PrettyResult(result) {
 
 function DrawGame(game) {
 
-	let gameArr = game.map(x => x === 1 ? '-' : x === 2 ? 'B' : 'W');
+	let gameArr = game.map(x => x === PIECES.EMPTY ? '-' : x === PIECES.BLACK ? 'B' : 'W');
 	let stringsToPrint = [];
 	let currentLine = '';
 

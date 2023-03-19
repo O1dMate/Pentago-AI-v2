@@ -7,16 +7,18 @@ const depthOneResultsAi = require('./ai-3-depth-one-results');
 // const top75PercentAi = require('./ai-7-top-75-percent');
 // const top75PercentNoIterDeepAi = require('./ai-8-top-75-percent-no-iter-deep');
 // const top75PercentBetterIterDeepAi = require('./ai-9-top-75-percent-better-iter-deep');
-const transpositionLookupAi = require('./ai-10-transposition-lookup');
+// const transpositionLookupAi = require('./ai-10-transposition-lookup');
 // const moveOrderingRowScoreAi = require('./ai-11-move-ordering-row-score');
 const moveFilteringAi = require('./ai-12-move-filtering');
 // const nullMoveCustomAi = require('./ai-13-null-move-custom');
-const betterMoveOrderingScoringAi = require('./ai-14-better-move-ordering-scoring');
+// const betterMoveOrderingScoringAi = require('./ai-14-better-move-ordering-scoring');
 
-const PIECES = { EMPTY: 1, BLACK: 2, WHITE: 3 };
+const mcts1Ai = require('./ai-mcts-1');
+
+const PIECES = { EMPTY: 0, BLACK: 1, WHITE: 2 };
 
 // ******************** UPDATABLE OPTIONS ********************
-const CURRENT_TURN = PIECES.BLACK;
+const CURRENT_TURN = PIECES.WHITE;
 
 const SEARCH_DEPTH = 13;
 // ******************** UPDATABLE OPTIONS ********************
@@ -36,8 +38,18 @@ function StartConfiguration() {
 	// GamePieces = "1,1,3,2,1,1,1,1,1,1,2,2,3,3,3,1,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 	// GamePieces = "3,1,1,1,2,1,3,3,1,1,2,1,3,2,3,2,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
 
-	GamePieces = "1,3,1,3,1,1,1,3,3,1,2,1,1,1,1,1,1,2,1,1,1,1,3,1,1,2,1,1,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,3,1,3,1,1,1,3,3,1,2,1,1,1,1,1,1,2,1,1,1,1,3,1,1,2,1,1,2,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
 	// GamePieces = "1,1,3,2,1,1,1,1,1,1,2,2,3,3,3,1,1,1,3,2,3,1,1,1,2,2,3,1,1,1,3,2,1,1,1,1".split(',').map(x => parseInt(x));
+
+	// GamePieces = "1,3,2,3,1,3,3,1,1,1,3,1,1,3,2,2,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "2,1,2,3,1,3,3,1,3,1,3,1,1,3,1,2,2,2,1,1,3,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1".split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,1,3,2,3,1,1,2,2,1,1,1,1,1,3,1,1,1,3,2,3,3,1,1,1,2,3,1,1,1,1,1,2,2,2".split(',').map(x => parseInt(x));
+	//GamePieces = "1,1,1,3,2,3,1,1,2,2,1,1,1,1,3,3,1,1,2,2,1,3,3,1,3,1,1,3,1,1,1,1,1,2,2,2".split(',').map(x => parseInt(x));
+	// GamePieces = "3,3,2,1,1,1,3,1,1,3,1,1,2,1,2,3,1,1,1,1,2,1,3,1,1,1,1,1,1,2,1,1,1,1,1,2".split(',').map(x => parseInt(x));
+
+	// GamePieces = "0,0,0,1,0,2,2,2,0,1,1,2,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,1,0,0,0,0,0,2,0".split(',').map(x => parseInt(x));
+	// GamePieces = "0,0,0,1,0,1,0,0,1,0,1,0,0,0,2,2,1,2,1,0,2,0,0,0,2,1,1,0,1,0,2,2,2,0,0,0".split(',').map(x => parseInt(x));
+	GamePieces = "0,0,1,2,0,0,0,0,0,0,2,2,1,1,1,0,0,0,1,2,1,0,0,0,2,2,1,0,0,0,1,2,0,0,0,0".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -50,8 +62,10 @@ function main() {
 		console.log(`Depth (${(i+1n).toString()}), Game Tree Size:`, new Intl.NumberFormat('en-AU').format(gameTreeSize.toString()));
 	}
 	
-	console.log('\nbetterMoveOrderingScoringAi');
-	betterMoveOrderingScoringAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
+	// mcts1Ai.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
+
+	// console.log('\nbetterMoveOrderingScoringAi');
+	// betterMoveOrderingScoringAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback);
 	// console.log('\nnullMoveCustomAi');
 	// nullMoveCustomAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	console.log('\nmoveFilteringAi');
@@ -72,8 +86,8 @@ function main() {
 	// fullScoreMovesAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nmoveOrderingBestRotationAi');
 	// moveOrderingBestRotationAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
-	console.log('\ndepthOneResultsAi');
-	depthOneResultsAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
+	// console.log('\ndepthOneResultsAi');
+	// depthOneResultsAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nalphaBetaAi');
 	// alphaBetaAi.SearchAux(GamePieces.toString(), SEARCH_DEPTH, CURRENT_TURN, PIECES, PrintEvtCallback, CompleteEvtCallback)
 	// console.log('\nstandardAi');

@@ -3,7 +3,7 @@ const { PrettyResult, DrawGame, RotateGame, Evaluate, GetPositionToBlockWin } = 
 let SEARCH_DEPTH;
 let PIECES;
 
-const alphaBetaStartDepth = 3;
+const alphaBetaStartDepth = 4;
 
 let originalDepth = 1;
 let bestIndex = -1;

@@ -3,12 +3,13 @@ const { PrettyResult, RotateGame, DrawGame, Evaluate } = require('./aux-function
 function GetDescription() {
 	return {
 		name: '07 - More Move Ordering',
-		des: '',
+		des: 'Much more Aggressive Pruning for late game when determining priority moves. Can give different results (longer solutions) than other versions as normal moves are ignored if priority moves can be performed. Opening play needs significant improvement as extra computation provides no benefit to early stage gameplay.',
 	};
 }
 
 let SEARCH_DEPTH;
 let PIECES;
+let OTHER_PLAYER_LOOKUP = new Map();
 
 let originalDepth = 1;
 let bestIndex = -1;
@@ -23,6 +24,9 @@ let KILLER_MOVES = [];
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, completeCallback) {
 	SEARCH_DEPTH = searchDepth;
 	PIECES = pieces;
+	OTHER_PLAYER_LOOKUP.clear();
+	OTHER_PLAYER_LOOKUP.set(PIECES.BLACK, PIECES.WHITE);
+	OTHER_PLAYER_LOOKUP.set(PIECES.WHITE, PIECES.BLACK);
 
 	let GamePieces = gameStr.split(',').map(x => parseInt(x));
 	KILLER_MOVES = Array.from({ length: searchDepth + 1 }, () => new Map());
@@ -45,6 +49,14 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, eventCallback, com
 		depthOneResults.forEach(move => {
 			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
 		});
+
+		// If there are really good moves, only focus on those.
+		if (depthOneResults.filter(move => move.score > 500000).length > 0) {
+			depthOneResults.forEach(move => {
+				if (move.score < 500000) depthOneMovesToAvoid[move.move] = true;
+			});
+		}
+
 		if (depth === 5) {
 			depthOneResults.slice(0, 5).forEach(move => {
 				depthOneBestMoves[move.move] = true;
@@ -213,6 +225,7 @@ let a = 0;
 
 function GetEmptyIndices(game, currentTurn) {
 	let winningMoves = [];
+	let ultraPriorityMoves = [];
 	let priorityMoves = [];
 	let otherMoves = [];
 
@@ -312,8 +325,6 @@ function GetEmptyIndices(game, currentTurn) {
 
 		// If there are moves that can block, only these should be explored, as any other move will lead to a loss.
 		if (priorityMoves.length > 0) otherMoves = [];
-	} else if (tempScore > 500) {
-		console.log(tempScore);
 	} else {
 		for (let i = 0; i < game.length; ++i) {
 			if (game[i] === PIECES.EMPTY) {
@@ -326,6 +337,7 @@ function GetEmptyIndices(game, currentTurn) {
 					RotateGame(game, quadrant, true); // Undo the Left Rotation
 	
 					if (tempScore === Number.MAX_SAFE_INTEGER) winningMoves.push([i, quadrant, false, (((i << 2) | (quadrant)) << 1) | 0]);
+					else if (tempScore > 500000) ultraPriorityMoves.push([i, quadrant, false, (((i << 2) | (quadrant)) << 1) | 0, tempScore]);
 					else if (tempScore > 500) priorityMoves.push([i, quadrant, false, (((i << 2) | (quadrant)) << 1) | 0, tempScore]);
 					else if (tempScore < -500) continue; // This would mean the move gives out opponent 4 in a row on the start of their turn.
 					else otherMoves.push([i, quadrant, false, (((i << 2) | (quadrant)) << 1) | 0, tempScore]);
@@ -335,6 +347,7 @@ function GetEmptyIndices(game, currentTurn) {
 					RotateGame(game, quadrant, false); // Undo the Right Rotation
 	
 					if (tempScore === Number.MAX_SAFE_INTEGER) winningMoves.push([i, quadrant, true, (((i << 2) | (quadrant)) << 1) | 1]);
+					else if (tempScore > 500000) ultraPriorityMoves.push([i, quadrant, true, (((i << 2) | (quadrant)) << 1) | 1, tempScore]);
 					else if (tempScore > 500) priorityMoves.push([i, quadrant, true, (((i << 2) | (quadrant)) << 1) | 1, tempScore]);
 					else if (tempScore < -500) continue; // This would mean the move gives out opponent 4 in a row on the start of their turn.
 					else otherMoves.push([i, quadrant, true, (((i << 2) | (quadrant)) << 1) | 1, tempScore]);
@@ -346,16 +359,93 @@ function GetEmptyIndices(game, currentTurn) {
 		}
 	}
 
+	if (ultraPriorityMoves.length > 0) {
+		// For each ultra priority move, ensure the opponent can't win immediately if the move is made.
+		ultraPriorityMoves = ultraPriorityMoves.filter(move => {
+			let result = true;
+
+			// Perform the move
+			game[move[0]] = currentTurn;
+			RotateGame(game, move[1], move[2]);
+			
+			// If the opponent can win after this move is made, it's a bad move, and needs to be rejected!
+			if (CanPlayerWinThisTurn(game, OTHER_PLAYER_LOOKUP.get(currentTurn))) {
+				result = false;
+			}
+			
+			// Undo the move
+			RotateGame(game, move[1], !move[2]);
+			game[move[0]] = PIECES.EMPTY;
+
+			return result;
+		});
+
+		ultraPriorityMoves.sort((a, b) => {
+			// Sort according to the 4th element (the score)
+			return a[4] > b[4] ? -1 : 1;
+		});
+	} 
 	if (priorityMoves.length > 0) {
-		priorityMoves.sort((a, b) => {
-			// Sort according to the 4th element (the score)
-			return a[4] > b[4] ? -1 : 1;
+		let backupPriorityMove = [[...priorityMoves[0]]];
+
+		// For each priority move, ensure the opponent can't win immediately if the move is made.
+		priorityMoves = priorityMoves.filter(move => {
+			let result = true;
+
+			// Perform the move
+			game[move[0]] = currentTurn;
+			RotateGame(game, move[1], move[2]);
+
+			// If the opponent can win after this move is made, it's a bad move, and needs to be rejected!
+			if (CanPlayerWinThisTurn(game, OTHER_PLAYER_LOOKUP.get(currentTurn))) {
+				result = false;
+			}
+
+			// Undo the move
+			RotateGame(game, move[1], !move[2]);
+			game[move[0]] = PIECES.EMPTY;
+
+			return result;
 		});
-	} else if (otherMoves.length > 0) {
-		otherMoves.sort((a, b) => {
-			// Sort according to the 4th element (the score)
-			return a[4] > b[4] ? -1 : 1;
+
+		if (priorityMoves.length === 0 && otherMoves.length === 0) priorityMoves = [...backupPriorityMove];
+		else {
+			priorityMoves.sort((a, b) => {
+				// Sort according to the 4th element (the score)
+				return a[4] > b[4] ? -1 : 1;
+			});
+		}
+	}
+	if (otherMoves.length > 0) {
+		let backupOtherMove = [[...otherMoves[0]]];
+
+		// For each move, ensure the opponent can't win immediately if the move is made.
+		otherMoves = otherMoves.filter(move => {
+			let result = true;
+
+			// Perform the move
+			game[move[0]] = currentTurn;
+			RotateGame(game, move[1], move[2]);
+
+			// If the opponent can win after this move is made, it's a bad move, and needs to be rejected!
+			if (CanPlayerWinThisTurn(game, OTHER_PLAYER_LOOKUP.get(currentTurn))) {
+				result = false;
+			}
+
+			// Undo the move
+			RotateGame(game, move[1], !move[2]);
+			game[move[0]] = PIECES.EMPTY;
+
+			return result;
 		});
+
+		if (otherMoves.length === 0 && otherMoves.length === 0) otherMoves = [...backupOtherMove];
+		else {
+			otherMoves.sort((a, b) => {
+				// Sort according to the 4th element (the score)
+				return a[4] > b[4] ? -1 : 1;
+			});
+		}
 	}
 
 	if (a < 0) ++a;
@@ -363,6 +453,18 @@ function GetEmptyIndices(game, currentTurn) {
 		DrawGame(game);
 		console.log('Score:', Evaluate(game, currentTurn));
 		console.log({ winningMoves });
+		console.log({ ultraPriorityMoves });
+		console.log({ priorityMoves });
+		console.log({ otherMoves });
+		process.exit(0);
+	}
+
+	if (priorityMoves.length === 0 && otherMoves.length === 0) {
+		DrawGame(game);
+		console.log('Score:', Evaluate(game, currentTurn));
+		console.log('Turn:', currentTurn === PIECES.BLACK ? 'BLACK' : 'WHITE');
+		console.log({ winningMoves });
+		console.log({ ultraPriorityMoves });
 		console.log({ priorityMoves });
 		console.log({ otherMoves });
 		process.exit(0);
@@ -370,9 +472,45 @@ function GetEmptyIndices(game, currentTurn) {
 
 	// If there are winning moves possible, only return those.
 	if (winningMoves.length > 0) return { winning: [...winningMoves] };
+	
+	// If there are ultra priority moves possible, only return those.
+	if (ultraPriorityMoves.length > 0) return { priority: [...ultraPriorityMoves], other: [] };
+		
+	// If there are priority moves possible, only return those.
+	if (priorityMoves.length > 0) return { priority: [...priorityMoves], other: [] };
 
 	// Otherwise, return the remaining moves
-	return { priority: [...priorityMoves], other: [...otherMoves] };
+	return { priority: [], other: [...otherMoves] };
+	// return { priority: [...priorityMoves], other: [...otherMoves] };
+}
+
+function CanPlayerWinThisTurn(game, player) {
+	// Copy the game board so that we can exit the function early if needed.
+	const tempGameBoard = [...game];
+
+	for (let i = 0; i < tempGameBoard.length; ++i) {
+		if (tempGameBoard[i] === PIECES.EMPTY) {
+			// Place the marble
+			tempGameBoard[i] = player;
+
+			for (let quadrant = 0; quadrant <= 3; ++quadrant) {
+				RotateGame(tempGameBoard, quadrant, false); // Perform the Left Rotation 
+				tempScore = Evaluate(tempGameBoard, player);
+				if (tempScore === Number.MAX_SAFE_INTEGER) return true;
+				RotateGame(tempGameBoard, quadrant, true); // Undo the Left Rotation
+
+				RotateGame(tempGameBoard, quadrant, true); // Perform the Right Rotation 
+				tempScore = Evaluate(tempGameBoard, player);
+				if (tempScore === Number.MAX_SAFE_INTEGER) return true;
+				RotateGame(tempGameBoard, quadrant, false); // Undo the Right Rotation
+			}
+
+			// Remove the marble
+			tempGameBoard[i] = PIECES.EMPTY;
+		}
+	}
+
+	return false;
 }
 
 module.exports = { SearchAux, GetEmptyIndices, GetDescription };

@@ -1,8 +1,9 @@
+const { DrawGame } = require('./ai/aux-functions');
 
 // const AI_TO_TEST_1 = require('./ai/01-normal-minimax');
-// const AI_TO_TEST_2 = require('./ai/02-alpha-beta');
-// const AI_TO_TEST_3 = require('./ai/03-depth-one-pruning');
-// const AI_TO_TEST_4 = require('./ai/04-kh');
+const AI_TO_TEST_2 = require('./ai/02-alpha-beta');
+const AI_TO_TEST_3 = require('./ai/03-depth-one-pruning');
+const AI_TO_TEST_4 = require('./ai/04-kh');
 const AI_TO_TEST_5 = require('./ai/05-move-ordering');
 const AI_TO_TEST_6 = require('./ai/06-iterative-deepening');
 const AI_TO_TEST_7 = require('./ai/07-more-move-ordering');
@@ -12,7 +13,7 @@ const PIECES = { EMPTY: 0, BLACK: 1, WHITE: 2 };
 // ******************** UPDATABLE OPTIONS ********************
 const CURRENT_TURN = PIECES.WHITE;
 
-const SEARCH_DEPTH = 5;
+const SEARCH_DEPTH = 13;
 // ******************** UPDATABLE OPTIONS ********************
 
 // Track what piece is in location
@@ -33,13 +34,18 @@ function StartConfiguration() {
 
 	// Win in 5
 	// GamePieces = "0,0,1,1,0,2,2,2,0,1,1,2,2,0,1,1,0,0,0,1,0,0,0,0,0,2,0,2,1,0,0,0,0,0,2,0".split(',').map(x => parseInt(x));
-	// GamePieces = "2,2,1,0,0,0,2,0,0,2,0,0,1,0,1,2,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1".split(',').map(x => parseInt(x));
 	// GamePieces = "0,0,1,2,0,0,0,1,2,0,2,2,1,1,1,0,0,0,1,2,1,0,0,0,2,2,1,0,0,0,1,2,0,0,0,0".split(',').map(x => parseInt(x));
+	// GamePieces = "2,2,1,0,0,0,2,0,0,2,0,0,1,0,1,2,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1".split(',').map(x => parseInt(x));
+
+
+	// GamePieces = "0,0,1,2,0,0,0,1,2,0,2,2,1,1,1,0,0,0,1,1,0,0,0,0,2,2,2,0,2,0,1,2,1,0,0,0".split(',').map(x => parseInt(x));
+	// GamePieces = "0,0,1,2,0,0,0,1,2,0,2,2,1,1,1,0,0,0,1,2,1,0,0,0,2,2,1,1,2,0,1,2,0,0,0,0".split(',').map(x => parseInt(x));
 
 
 	// Lose in 4 (black)
 	// GamePieces = "1,2,2,0,0,0,0,0,2,2,0,0,1,0,1,2,0,0,0,0,1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1".split(',').map(x => parseInt(x));
 	// GamePieces = "0,0,1,2,0,0,0,1,2,0,2,2,1,1,1,0,0,0,1,1,0,0,0,0,2,2,2,0,2,0,1,2,1,0,0,0".split(',').map(x => parseInt(x));
+	// GamePieces = "1,2,2,0,0,0,0,0,2,2,0,0,1,0,1,2,0,0,0,0,1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1".split(',').map(x => parseInt(x));
 
 	// Win 3
 	// GamePieces = "2,2,1,0,0,0,2,0,0,2,0,0,1,0,1,2,0,0,0,0,1,0,2,0,0,0,0,0,0,1,0,0,0,0,0,1".split(',').map(x => parseInt(x));
@@ -51,7 +57,6 @@ function StartConfiguration() {
 
 	// Win in 7
 	// GamePieces = "0,0,0,2,0,1,1,1,0,2,2,1,0,0,0,2,0,0,0,2,0,0,0,0,0,1,0,0,2,0,0,0,0,0,1,0".split(',').map(x => parseInt(x));
-
 	// GamePieces = "0,0,0,1,0,2,2,2,0,1,1,2,0,0,0,1,0,0,0,1,0,0,1,0,0,2,0,0,1,2,0,0,0,0,0,0".split(',').map(x => parseInt(x));
 
 
@@ -62,12 +67,19 @@ function StartConfiguration() {
 	// GamePieces = "0,0,1,2,0,0,0,0,0,0,2,2,1,1,1,0,0,0,1,2,1,0,0,0,2,2,1,0,0,0,1,2,0,0,0,0".split(',').map(x => parseInt(x));
 
 
-	// More Ordering Tests - White must block
-	// GamePieces = "1,2,0,0,0,0,2,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,1,2".split(',').map(x => parseInt(x));
-	
+	// More Ordering Tests - White must block (AI 7 Needs Improvement here)
+	GamePieces = "1,2,0,0,0,0,2,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,1,2".split(',').map(x => parseInt(x));
+
 	// More Ordering Tests - White must make 4 in a row
-	GamePieces = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,0,0,0,0,2,1,0,0,0,0,2,1,0,0,0,0,0,0,0,0".split(',').map(x => parseInt(x));
-	
+	// GamePieces = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,0,0,0,0,2,1,0,0,0,0,2,1,0,0,0,0,0,0,0,0".split(',').map(x => parseInt(x));
+
+	// Move Ordering Tests - White should make 4 in a row with open ends
+	// GamePieces = "0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,1,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,0,0,1,1,0".split(',').map(x => parseInt(x));
+	// GamePieces = "1,1,0,0,2,2,0,0,0,0,0,0,1,0,2,0,1,1,0,0,2,0,0,0,0,0,2,0,0,0,2,0,0,1,1,0".split(',').map(x => parseInt(x));
+
+	// Unsure 
+	// GamePieces = "0,0,0,0,0,0,1,1,1,0,2,0,0,2,0,2,0,0,0,2,0,0,0,0,0,1,0,0,2,0,0,0,0,0,0,0".split(',').map(x => parseInt(x));
+	// GamePieces = "0,0,0,0,1,0,1,1,1,0,2,0,0,2,1,2,2,0,0,2,0,0,2,0,0,1,0,2,2,0,0,0,0,0,1,0".split(',').map(x => parseInt(x));
 }
 
 function main() {
@@ -80,10 +92,12 @@ function main() {
 		console.log(`Depth (${(i+1n).toString()}), Game Tree Size:`, new Intl.NumberFormat('en-AU').format(gameTreeSize.toString()));
 	}
 
+	DrawGame(GamePieces);
+
 	const listToTest = [
 		AI_TO_TEST_7,
-		AI_TO_TEST_6,
-		AI_TO_TEST_5,
+		// AI_TO_TEST_6,
+		// AI_TO_TEST_5,
 		// AI_TO_TEST_4,
 		// AI_TO_TEST_3,
 		// AI_TO_TEST_2,
